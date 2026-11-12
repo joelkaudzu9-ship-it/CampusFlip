@@ -10,7 +10,7 @@ const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const springPhysics = { type: "spring", stiffness: 300, damping: 28, mass: 0.8 };
 
-export default function AccountSettings({ session, onClose, onToast }) {
+export default function AccountSettings({ session, onClose, onBack, onToast }) {
   const avatarInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -26,27 +26,6 @@ export default function AccountSettings({ session, onClose, onToast }) {
 
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
-
-  // ── Handle hardware back button (popstate) ──────────────────────────────
-  useEffect(() => {
-    // Push a dummy history state so pressing back doesn't leave the page
-    window.history.pushState({ modal: 'account-settings' }, '');
-
-    const handlePopState = () => {
-      // When the user presses back, close the modal instead of navigating
-      onClose();
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // If the modal was closed via the X button (not popstate), we need to
-      // clean up the dummy history state we pushed.
-      if (window.history.state?.modal === 'account-settings') {
-        window.history.back();
-      }
-    };
-  }, [onClose]);
 
   useEffect(() => {
     let mounted = true;
@@ -216,7 +195,8 @@ export default function AccountSettings({ session, onClose, onToast }) {
       if (contactError) throw new Error('Profile saved, but WhatsApp could not be updated: ' + contactError.message);
 
       onToast?.('Your profile has been updated.');
-      onClose();
+      // Use onBack so history stays balanced
+      onBack?.();
     } catch (err) {
       console.error('Profile save error:', err);
       onToast?.(err.message || 'Could not save your profile.', 'error');
@@ -245,7 +225,7 @@ export default function AccountSettings({ session, onClose, onToast }) {
           <h2>Personal details</h2>
           <p>Keep your CampusFlip profile up to date.</p>
         </div>
-        <motion.button whileTap={{ scale: 0.9 }} type="button" className="cf-icon-close" onClick={onClose} aria-label="Close settings">
+        <motion.button whileTap={{ scale: 0.9 }} type="button" className="cf-icon-close" onClick={onBack || onClose} aria-label="Close settings">
           <X size={19} />
         </motion.button>
       </div>

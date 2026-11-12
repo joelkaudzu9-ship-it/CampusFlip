@@ -303,6 +303,7 @@ export default function App() {
 
   // Back button handling — prevents hardware back from exiting the site
   const accountBack = useBackButton(showAccountPage, () => { setShowAccountPage(false); setNav('Home'); });
+  const settingsBack = useBackButton(showSettings, () => { setShowSettings(false); });
   const savedBack = useBackButton(showSavedPage, () => { setShowSavedPage(false); setNav('Home'); });
   const shopBack = useBackButton(showMyShop, () => { setShowMyShop(false); setNav('Home'); });
   const searchBack = useBackButton(showSearchPage, () => { setShowSearchPage(false); });
@@ -845,10 +846,11 @@ export default function App() {
         </header>
 
         <div style={{ paddingTop: '80px' }}>
-          <AnimatedModal open={showSettings && Boolean(session)} onClose={() => setShowSettings(false)} className="cf-account-modal">
+          <AnimatedModal open={showSettings && Boolean(session)} onClose={settingsBack.close} className="cf-account-modal">
             <AccountSettings
               session={session}
               onClose={() => { setShowSettings(false); setProfileRefresh(v => v + 1); }}
+              onBack={settingsBack.close}
               onToast={ping}
             />
           </AnimatedModal>
