@@ -76,7 +76,7 @@ export default function AuthPanel({ onAuthenticated, onToast }) {
       if (mode === 'reset') {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
           email.trim(),
-          { redirectTo: `${window.location.origin}/` }
+          { redirectTo: `${window.location.origin}/reset-password` }
         );
         if (resetError) throw resetError;
         onToast?.('If an account exists for that email, a reset link is on its way.', 'success');

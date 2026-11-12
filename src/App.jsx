@@ -17,6 +17,7 @@ import InvitePage from './components/InvitePage';
 import NotificationPreferences from './components/NotificationPreferences';
 import PrivacySecurity from './components/PrivacySecurity';
 import SearchPage from './components/SearchPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -269,6 +270,9 @@ export default function App() {
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
+  // ── Password reset page ──────────────────────────────────────────────────
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const [inviteCode, setInviteCode] = useState(() => {
@@ -355,11 +359,24 @@ export default function App() {
     }
   }, [loading, imagesLoaded]);
 
-  // Auth
+  // Auth — with PASSWORD_RECOVERY handling
   useEffect(() => {
     if (!supabase) return;
+
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => setSession(newSession));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // User clicked the reset link in their email.
+        // Show the reset page so they can set a new password.
+        setSession(newSession);
+        setShowResetPassword(true);
+        return;
+      }
+
+      setSession(newSession);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -721,6 +738,20 @@ export default function App() {
     transition: 'background 0.2s, color 0.2s, border-color 0.2s',
   });
 
+  // ── Password reset page takes over the entire viewport ──────────────────
+  if (showResetPassword) {
+    return (
+      <ResetPasswordPage
+        onToast={ping}
+        onComplete={() => {
+          setShowResetPassword(false);
+          // Clear the hash so refreshing doesn't re-trigger recovery
+          window.history.replaceState(null, '', window.location.pathname);
+        }}
+      />
+    );
+  }
+
   if (inviteCode) {
     return (
       <InvitePage
@@ -840,7 +871,6 @@ export default function App() {
             </motion.button>
           </div>
 
-          {/* Category chips — slim horizontal scroll */}
           <nav className="cats cf-categories" aria-label="Categories">
             {cats.map(([name, Icon]) => {
               const active = cat === name;
@@ -860,7 +890,6 @@ export default function App() {
             })}
           </nav>
 
-          {/* Verified + Sort chips */}
           <div
             style={{
               display: 'flex',
@@ -904,7 +933,6 @@ export default function App() {
             </motion.button>
           </div>
 
-          {/* Flash Deals */}
           <motion.section layout className="cf-flash-section" style={{ position: 'relative', overflow: 'hidden', minHeight: '220px' }}>
             <AnimatePresence mode="wait">
               {showAllDeals ? (
@@ -1145,9 +1173,6 @@ export default function App() {
             </div>
           )}
 
-          {/* GRID — single grid-level fade for tab changes; per-item stagger
-              only on the initial 12 items of the initial page. Load more
-              items append without cascade. */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`grid-${tab}`}
@@ -1177,8 +1202,6 @@ export default function App() {
               ) : (
                 shown.map((item, i) => {
                   const activeFlash = flashDeals.find(fd => fd.id === item.id);
-                  // First page — stagger the first 12. Everything after:
-                  // instant appearance, no delay cascade.
                   const shouldStagger = i < 12;
                   return (
                     <motion.div
