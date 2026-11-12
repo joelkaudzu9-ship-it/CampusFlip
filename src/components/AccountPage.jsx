@@ -217,6 +217,7 @@ export default function AccountPage({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springPhysics}
+      className="cf-account-page"
       style={{
         minHeight: '100vh',
         padding: 'calc(24px + env(safe-area-inset-top)) 16px 120px',
@@ -617,6 +618,7 @@ export default function AccountPage({
         style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #E5EAF2' }}
       >
         <motion.button
+          className="cf-signout-row"
           whileHover={{ scale: 1.01, background: '#FEF2F2' }}
           whileTap={{ scale: 0.97 }}
           onClick={onSignOut}
@@ -659,6 +661,7 @@ export default function AccountPage({
 function MenuButton({ icon, label, sublabel, onClick, disabled, danger }) {
   return (
     <motion.button
+      className="cf-menu-row"
       variants={{
         hidden: { opacity: 0, x: -12 },
         show: { opacity: 1, x: 0, transition: springPhysics },

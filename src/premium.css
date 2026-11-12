@@ -1910,3 +1910,212 @@ p { line-height: 1.65; }
 .cf-post-button:active {
   transform: scale(0.94) translateZ(0) !important;
 }
+
+/* CampusFlip account redesign — import once in the app entry point. */
+.cf-account-page,
+.cf-settings-redesign {
+  --cf-surface: #fff;
+  --cf-surface-soft: #f7f9fc;
+  --cf-page: #f5f7fb;
+  --cf-text: #172033;
+  --cf-muted: #778196;
+  --cf-line: #e7eaf0;
+  --cf-accent: #315eea;
+  --cf-accent-soft: #eef2ff;
+  --cf-amber: #e6a52b;
+  --cf-danger: #c24141;
+  color: var(--cf-text) !important;
+}
+
+/* Supports common app-level dark theme markers. */
+:root[data-theme="dark"] .cf-account-page,
+:root[data-theme="dark"] .cf-settings-redesign,
+html.dark .cf-account-page,
+html.dark .cf-settings-redesign,
+body.dark .cf-account-page,
+body.dark .cf-settings-redesign,
+.dark .cf-account-page,
+.dark .cf-settings-redesign {
+  --cf-surface: #242629;
+  --cf-surface-soft: #2b2d30;
+  --cf-page: #1c1e20;
+  --cf-text: #f2f3f5;
+  --cf-muted: #a1a5ad;
+  --cf-line: #3a3d41;
+  --cf-accent: #8ba5ff;
+  --cf-accent-soft: #30394f;
+  --cf-amber: #f0bd59;
+  --cf-danger: #ff8585;
+}
+
+/* Account page shell and compact header. */
+.cf-account-page {
+  background: var(--cf-page) !important;
+  max-width: 600px !important;
+  padding: calc(16px + env(safe-area-inset-top)) 18px 112px !important;
+}
+.cf-account-page > div:first-child {
+  background: color-mix(in srgb, var(--cf-page) 88%, transparent) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: -4px 0 18px !important;
+  padding: 8px 0 14px !important;
+  backdrop-filter: blur(14px);
+}
+.cf-account-page h1 {
+  color: var(--cf-text) !important;
+  font-size: 23px !important;
+  letter-spacing: -.55px;
+  font-weight: 750;
+}
+.cf-account-page > div:first-child p { color: var(--cf-muted) !important; }
+.cf-account-page button[aria-label="Back"] {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-line) !important;
+  color: var(--cf-text) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+/* Profile identity: restrained surface, no decorative gradient. */
+.cf-account-page > section {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-line) !important;
+  border-radius: 17px !important;
+  box-shadow: none !important;
+  padding: 26px 20px 20px !important;
+  margin-bottom: 16px !important;
+}
+.cf-account-page > section > div:first-child[style*="position: absolute"] {
+  display: none !important;
+}
+.cf-account-page > section h2 { color: var(--cf-text) !important; }
+.cf-account-page > section p { color: var(--cf-muted) !important; }
+.cf-account-page > section > div:last-child { border-top-color: var(--cf-line) !important; }
+.cf-account-page > section > div:last-child > div > div:first-child { color: var(--cf-text) !important; }
+.cf-account-page > section > div:last-child > div > div:last-child { color: var(--cf-muted) !important; }
+
+/* Referral keeps the amber brand cue without heavy shadows. */
+.cf-account-page > section + div > div { box-shadow: none !important; }
+.cf-account-page > section + div { border-radius: 16px !important; }
+.cf-account-page > section + div button {
+  box-shadow: none !important;
+  border-radius: 10px !important;
+}
+
+/* Navigation rows become one grouped settings list. */
+.cf-account-page .cf-menu-row {
+  background: var(--cf-surface) !important;
+  color: var(--cf-text) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 15px 13px !important;
+  min-height: 69px;
+  transform: none;
+}
+.cf-account-page .cf-menu-row:first-child {
+  border-top: 1px solid var(--cf-line) !important;
+  border-radius: 15px 15px 0 0 !important;
+}
+.cf-account-page .cf-menu-row:last-child { border-radius: 0 0 15px 15px !important; }
+.cf-account-page .cf-menu-row > span:first-child {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--cf-accent) !important;
+}
+.cf-account-page .cf-menu-row strong {
+  color: var(--cf-text) !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+.cf-account-page .cf-menu-row small { color: var(--cf-muted) !important; }
+.cf-account-page .cf-menu-row > svg { color: var(--cf-muted) !important; }
+.cf-account-page .cf-menu-row:hover { background: var(--cf-surface-soft) !important; }
+
+/* Quiet sign-out row. */
+.cf-account-page .cf-signout-row {
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--cf-line) !important;
+  border-radius: 0 !important;
+  color: var(--cf-danger) !important;
+  box-shadow: none !important;
+  justify-content: flex-start !important;
+  padding: 18px 10px !important;
+}
+.cf-account-page > p:last-child { color: var(--cf-muted) !important; }
+
+/* Account settings screen. */
+.cf-settings-redesign { padding: 0 !important; }
+.cf-settings-redesign .cf-settings-heading { align-items: center; margin-bottom: 18px !important; }
+.cf-settings-redesign .cf-settings-heading h2 {
+  color: var(--cf-text) !important;
+  font-size: 22px !important;
+  letter-spacing: -.45px;
+}
+.cf-settings-redesign .cf-settings-heading p { color: var(--cf-muted) !important; }
+.cf-settings-redesign .cf-eyebrow { color: var(--cf-accent) !important; letter-spacing: 1.3px !important; }
+.cf-settings-redesign .cf-icon-close {
+  background: var(--cf-surface) !important;
+  color: var(--cf-text) !important;
+  border: 1px solid var(--cf-line) !important;
+  box-shadow: none !important;
+}
+.cf-settings-redesign > div:nth-of-type(2) {
+  background: var(--cf-surface) !important;
+  border: 1px solid var(--cf-line) !important;
+  border-radius: 16px !important;
+  padding: 22px 16px !important;
+  margin-bottom: 18px !important;
+}
+.cf-settings-redesign .cf-settings-field {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px !important;
+  padding: 13px 0 !important;
+  border-bottom: 1px solid var(--cf-line);
+}
+.cf-settings-redesign .cf-settings-field > span {
+  color: var(--cf-text) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+.cf-settings-redesign .cf-settings-field > span svg { color: var(--cf-accent) !important; }
+.cf-settings-redesign .cf-settings-field input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  background: var(--cf-surface-soft) !important;
+  color: var(--cf-text) !important;
+  border: 1px solid var(--cf-line) !important;
+  border-radius: 10px !important;
+  padding: 11px 13px !important;
+  outline: none;
+  box-shadow: none !important;
+}
+.cf-settings-redesign .cf-settings-field input:focus {
+  border-color: var(--cf-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cf-accent) 14%, transparent) !important;
+}
+.cf-settings-redesign .cf-settings-field small { color: var(--cf-muted) !important; }
+.cf-settings-redesign .cf-settings-save {
+  min-height: 48px;
+  border-radius: 11px !important;
+  background: var(--cf-accent) !important;
+  box-shadow: none !important;
+}
+.cf-settings-redesign > div:last-child { border-top-color: var(--cf-line) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-account-page *, .cf-settings-redesign * {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
