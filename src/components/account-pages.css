@@ -1,0 +1,1684 @@
+/* =========================================================
+   CAMPUSFLIP — ACCOUNT EXPERIENCE
+   Shared styles for AccountPage and AccountSettings
+   ========================================================= */
+
+.cf-account-page,
+.cf-settings-page {
+  --cf-navy: #101c3a;
+  --cf-blue: #2563eb;
+  --cf-blue-dark: #1745b5;
+  --cf-amber: #f5a623;
+  --cf-muted: #8491a8;
+  --cf-border: #e7ecf4;
+  --cf-surface: #ffffff;
+  --cf-bg: #f5f7fc;
+  width: 100%;
+  max-width: 1120px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 30px 28px 110px;
+  color: var(--cf-navy);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.cf-account-page *,
+.cf-settings-page * {
+  box-sizing: border-box;
+}
+
+.cf-account-page button,
+.cf-settings-page button,
+.cf-settings-page input {
+  font: inherit;
+}
+
+.cf-account-page button,
+.cf-settings-page button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cf-account-overline {
+  display: block;
+  color: #8b97ac;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.8px;
+  line-height: 1.5;
+}
+
+/* Top navigation */
+
+.cf-account-topbar,
+.cf-settings-topbar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 27px;
+}
+
+.cf-account-topbar h1,
+.cf-settings-topbar h1 {
+  margin: 3px 0 0;
+  font-size: clamp(21px, 3vw, 27px);
+  line-height: 1.2;
+  font-weight: 850;
+  letter-spacing: -1px;
+}
+
+.cf-account-back {
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--cf-border);
+  border-radius: 14px;
+  background: white;
+  color: var(--cf-navy);
+  cursor: pointer;
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+
+.cf-account-back:hover {
+  background: #f4f7ff;
+  border-color: #cbd8f3;
+  box-shadow: 0 5px 15px rgba(16, 28, 58, .06);
+}
+
+.cf-account-top-action {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid #dce6fb;
+  border-radius: 12px;
+  background: #edf3ff;
+  color: var(--cf-blue);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.cf-account-top-action:hover {
+  background: #e1ebff;
+  border-color: #b9cef9;
+}
+
+/* Account welcome */
+
+.cf-account-welcome {
+  min-height: 205px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  padding: 34px 42px;
+  margin-bottom: 24px;
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(73, 133, 255, .26), transparent 35%),
+    linear-gradient(115deg, #101c3a 0%, #172c58 60%, #1c3c79 100%);
+  color: white;
+  box-shadow: 0 18px 42px rgba(16, 28, 58, .13);
+}
+
+.cf-account-welcome-copy {
+  max-width: 560px;
+  position: relative;
+  z-index: 2;
+}
+
+.cf-account-welcome .cf-account-overline {
+  color: #9bb8f5;
+}
+
+.cf-account-welcome h2 {
+  margin: 12px 0 9px;
+  font-size: clamp(27px, 4vw, 40px);
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -1.8px;
+}
+
+.cf-account-welcome h2 em {
+  color: #ffbd4a;
+  font-style: normal;
+}
+
+.cf-account-welcome p {
+  max-width: 420px;
+  margin: 0;
+  color: #c1cce2;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.cf-account-welcome-decoration {
+  width: 190px;
+  height: 150px;
+  flex: 0 0 190px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-right: 25px;
+}
+
+.cf-decoration-orbit {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border: 1px solid rgba(255, 255, 255, .19);
+  border-radius: 50%;
+}
+
+.cf-orbit-one {
+  transform: scale(1.25);
+}
+
+.cf-orbit-two {
+  transform: scale(.85);
+  border-color: rgba(255, 189, 74, .35);
+}
+
+.cf-decoration-core {
+  width: 75px;
+  height: 75px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 23px;
+  background: linear-gradient(145deg, #3566c6, #17356f);
+  color: white;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.2);
+  transform: rotate(-8deg);
+}
+
+.cf-decoration-spark {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--cf-amber);
+  color: var(--cf-navy);
+  transform: rotate(12deg);
+}
+
+/* Account profile and activity */
+
+.cf-account-profile-layout {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 20px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+
+.cf-account-profile-card,
+.cf-account-stats-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--cf-border);
+  border-radius: 21px;
+  background: white;
+  box-shadow: 0 5px 20px rgba(16, 28, 58, .035);
+}
+
+.cf-account-profile-cover {
+  height: 91px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 19px 22px;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(255,255,255,.15), transparent 32%),
+    linear-gradient(115deg, #1c3261, #2853a0);
+  color: #b8cafa;
+}
+
+.cf-account-cover-label {
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.7px;
+}
+
+.cf-account-cover-mark {
+  color: rgba(255,255,255,.16);
+  font-size: 31px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -3px;
+}
+
+.cf-account-profile-body {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 0 22px 19px;
+}
+
+.cf-account-avatar-wrap {
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  position: relative;
+  margin-top: -32px;
+}
+
+.cf-account-avatar {
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 4px solid white;
+  border-radius: 23px;
+  background: #e7efff;
+  color: var(--cf-blue);
+  box-shadow: 0 5px 16px rgba(16, 28, 58, .12);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.cf-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cf-account-verified {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #20a66a;
+  color: white;
+}
+
+.cf-account-identity {
+  min-width: 0;
+  flex: 1;
+  padding-top: 12px;
+}
+
+.cf-account-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cf-account-name-line h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -.5px;
+  text-overflow: ellipsis;
+}
+
+.cf-account-verified-text {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #e7f8ef;
+  color: #16834c;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .7px;
+}
+
+.cf-account-business,
+.cf-account-email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  margin: 5px 0 0;
+  color: var(--cf-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.cf-account-business {
+  color: var(--cf-blue);
+  font-weight: 750;
+}
+
+.cf-account-edit-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 8px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--cf-blue);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cf-account-member-strip {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 20px;
+  border-top: 1px solid #edf0f6;
+  background: #fbfcff;
+}
+
+.cf-account-member-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cf-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.cf-account-member-verified {
+  color: #16834c !important;
+}
+
+.cf-account-stats-panel {
+  padding: 22px;
+}
+
+.cf-account-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.cf-account-section-heading h3 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -.6px;
+}
+
+.cf-account-section-heading > svg {
+  color: #a0aec4;
+}
+
+.cf-account-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.cf-account-stat {
+  min-width: 0;
+  min-height: 125px;
+  padding: 13px 11px;
+  border: 1px solid #edf0f6;
+  border-radius: 14px;
+  background: #fafbfe;
+}
+
+.cf-account-stat-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 13px;
+}
+
+.cf-account-stat-icon {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.cf-stat-blue .cf-account-stat-icon {
+  background: #e9f0ff;
+  color: #2860d4;
+}
+
+.cf-stat-amber .cf-account-stat-icon {
+  background: #fff2d9;
+  color: #b77a10;
+}
+
+.cf-stat-violet .cf-account-stat-icon {
+  background: #f0eaff;
+  color: #7652ce;
+}
+
+.cf-account-stat-label {
+  overflow: hidden;
+  color: #7d8ba3;
+  font-size: 9px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+}
+
+.cf-account-stat > strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.cf-account-stat > small {
+  display: block;
+  margin-top: 5px;
+  color: #9aa5b7;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+/* Referral section */
+
+.cf-account-referral {
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  margin-bottom: 35px;
+  border: 1px solid #f0dba9;
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(245,166,35,.2), transparent 35%),
+    linear-gradient(120deg, #fffaf0, #fff3d9);
+}
+
+.cf-account-referral-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cf-account-referral-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--cf-amber);
+  color: var(--cf-navy);
+  box-shadow: 0 7px 18px rgba(245,166,35,.25);
+}
+
+.cf-account-referral-main h3 {
+  margin: 5px 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -.5px;
+}
+
+.cf-account-referral-main p {
+  max-width: 560px;
+  margin: 0;
+  color: #8a744b;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.cf-account-referral-credit {
+  position: absolute;
+  top: 22px;
+  right: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.cf-account-referral-credit strong {
+  color: #946000;
+  font-size: 29px;
+  font-weight: 950;
+  letter-spacing: -1.5px;
+}
+
+.cf-account-referral-credit span {
+  color: #9d8354;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.cf-account-referral-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 22px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(183, 135, 45, .17);
+}
+
+.cf-account-referral-link {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  color: #7b5c20;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.cf-account-referral-link svg {
+  flex: 0 0 auto;
+}
+
+.cf-account-referral-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-account-referral-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.cf-account-copy,
+.cf-account-share {
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid rgba(16,28,58,.13);
+  border-radius: 10px;
+  background: white;
+  color: var(--cf-navy);
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.cf-account-copy:hover {
+  border-color: #d7b96e;
+  background: #fffdf7;
+}
+
+.cf-account-copy.is-copied {
+  border-color: #1e9a60;
+  background: #1e9a60;
+  color: white;
+}
+
+.cf-account-share {
+  border-color: var(--cf-amber);
+  background: var(--cf-amber);
+}
+
+.cf-account-share:hover {
+  background: #ffbd4a;
+}
+
+/* Account management */
+
+.cf-account-management {
+  margin-top: 5px;
+}
+
+.cf-account-section-note {
+  color: #a0aabd;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.cf-account-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cf-account-action {
+  min-width: 0;
+  min-height: 91px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid var(--cf-border);
+  border-radius: 16px;
+  background: white;
+  color: var(--cf-navy);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16,28,58,.025);
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.cf-account-action:hover {
+  border-color: #cbd8f4;
+  box-shadow: 0 9px 24px rgba(16,28,58,.065);
+}
+
+.cf-account-action-icon {
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+}
+
+.cf-action-blue {
+  background: #eaf1ff;
+  color: #2860d4;
+}
+
+.cf-action-amber {
+  background: #fff3df;
+  color: #ba7b0e;
+}
+
+.cf-action-violet {
+  background: #f0eaff;
+  color: #7957c9;
+}
+
+.cf-action-rose {
+  background: #ffeded;
+  color: #c14d4d;
+}
+
+.cf-account-action-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.cf-account-action-copy strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.cf-account-action-copy small {
+  display: block;
+  margin-top: 4px;
+  color: #909cb0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.cf-account-action-arrow {
+  display: grid;
+  place-items: center;
+  color: #aab4c5;
+}
+
+.cf-account-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 35px;
+  padding-top: 20px;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-account-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9aa5b7;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cf-account-footer-mark {
+  color: var(--cf-blue);
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -2px;
+}
+
+.cf-account-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #f3dede;
+  border-radius: 10px;
+  background: white;
+  color: #b53e3e;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.cf-account-footer button:hover {
+  background: #fff3f3;
+  border-color: #eabbbb;
+}
+
+/* =========================================================
+   SETTINGS PAGE
+   ========================================================= */
+
+.cf-settings-topbar {
+  margin-bottom: 25px;
+}
+
+.cf-settings-secure-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 9px 12px;
+  border: 1px solid #d9eee3;
+  border-radius: 10px;
+  background: #f0faf4;
+  color: #20804d;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.cf-settings-intro {
+  min-height: 175px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  padding: 30px 36px;
+  margin-bottom: 23px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 90% 50%, rgba(76, 135, 255, .2), transparent 28%),
+    linear-gradient(110deg, #111e3d, #1d3972);
+  color: white;
+}
+
+.cf-settings-intro > div:first-child {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+}
+
+.cf-settings-intro .cf-account-overline {
+  color: #9bb8f5;
+}
+
+.cf-settings-intro h2 {
+  margin: 9px 0;
+  font-size: clamp(29px, 4vw, 38px);
+  font-weight: 900;
+  letter-spacing: -1.5px;
+}
+
+.cf-settings-intro h2 em {
+  color: #ffbd4a;
+  font-style: normal;
+}
+
+.cf-settings-intro p {
+  max-width: 500px;
+  margin: 0;
+  color: #c0cce4;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.cf-settings-intro-art {
+  width: 85px;
+  height: 85px;
+  flex: 0 0 85px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-right: 45px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 25px;
+  background: rgba(255,255,255,.08);
+  color: #dce7ff;
+  transform: rotate(-8deg);
+}
+
+.cf-settings-intro-art > span {
+  position: absolute;
+  right: -12px;
+  bottom: -10px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #1d3972;
+  border-radius: 50%;
+  background: var(--cf-amber);
+  color: var(--cf-navy);
+}
+
+.cf-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(245px, .75fr) minmax(0, 1.65fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.cf-settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.cf-settings-avatar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 23px 19px;
+  border: 1px solid var(--cf-border);
+  border-radius: 19px;
+  background: white;
+  box-shadow: 0 5px 20px rgba(16,28,58,.035);
+}
+
+.cf-settings-avatar-card > .cf-account-overline {
+  align-self: flex-start;
+}
+
+.cf-settings-avatar-wrap {
+  width: 112px;
+  height: 112px;
+  position: relative;
+  margin: 24px 0 14px;
+}
+
+.cf-settings-avatar {
+  width: 112px;
+  height: 112px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 5px solid white;
+  border-radius: 32px;
+  background: linear-gradient(145deg, #eaf1ff, #dce8ff);
+  color: var(--cf-blue);
+  box-shadow: 0 8px 24px rgba(16,28,58,.13);
+  font-size: 36px;
+  font-weight: 900;
+}
+
+.cf-settings-avatar-content {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.cf-settings-avatar-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cf-settings-avatar-camera {
+  position: absolute;
+  right: -8px;
+  bottom: -5px;
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--cf-blue);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37,99,235,.25);
+}
+
+.cf-settings-avatar-camera:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.cf-settings-avatar-card h3 {
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 850;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.cf-settings-avatar-card > p {
+  max-width: 100%;
+  overflow: hidden;
+  margin: 6px 0 0;
+  color: #929eb1;
+  font-size: 10px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.cf-settings-business-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 9px;
+  color: var(--cf-blue);
+  font-size: 10px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+}
+
+.cf-settings-avatar-actions {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.cf-settings-avatar-actions button {
+  min-height: 36px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #dce6f7;
+  border-radius: 9px;
+  background: #f5f8ff;
+  color: var(--cf-blue);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.cf-settings-avatar-actions button:hover {
+  background: #eaf1ff;
+}
+
+.cf-settings-avatar-actions .cf-settings-remove-photo {
+  flex: 0 0 38px;
+  border-color: #f2dddd;
+  background: #fff7f7;
+  color: #bd4848;
+}
+
+.cf-settings-avatar-actions button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.cf-settings-image-note {
+  margin-top: 12px;
+  color: #a0aabd;
+  font-size: 9px;
+}
+
+.cf-settings-sidebar-note {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid #dce8fb;
+  border-radius: 14px;
+  background: #f2f6ff;
+}
+
+.cf-settings-sidebar-note > span {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #e1ebff;
+  color: var(--cf-blue);
+}
+
+.cf-settings-sidebar-note strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.cf-settings-sidebar-note p {
+  margin: 5px 0 0;
+  color: #8391a9;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+/* Settings form */
+
+.cf-settings-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.cf-settings-form,
+.cf-settings-shop-plan {
+  min-width: 0;
+  padding: 25px;
+  border: 1px solid var(--cf-border);
+  border-radius: 19px;
+  background: white;
+  box-shadow: 0 5px 20px rgba(16,28,58,.035);
+}
+
+.cf-settings-form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  padding-bottom: 19px;
+  border-bottom: 1px solid #edf0f6;
+}
+
+.cf-settings-form-heading > svg {
+  flex: 0 0 auto;
+  color: #9cabc2;
+}
+
+.cf-settings-form-heading h3 {
+  margin: 5px 0 4px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -.5px;
+}
+
+.cf-settings-form-heading p {
+  margin: 0;
+  color: #929eb1;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.cf-settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 15px;
+  padding: 22px 0;
+}
+
+.cf-settings-input-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cf-settings-input-group > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #263653;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.cf-settings-input-group > span svg {
+  color: var(--cf-blue);
+}
+
+.cf-settings-input-group > span i {
+  margin-left: auto;
+  color: #9ca8ba;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.cf-settings-input-group input {
+  width: 100%;
+  height: 45px;
+  min-width: 0;
+  padding: 0 13px;
+  outline: none;
+  border: 1px solid #e1e7f0;
+  border-radius: 10px;
+  background: #fbfcfe;
+  color: var(--cf-navy);
+  font-size: 11px;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+
+.cf-settings-input-group input::placeholder {
+  color: #aeb8c8;
+}
+
+.cf-settings-input-group input:focus {
+  border-color: #7ca5f5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.09);
+}
+
+.cf-settings-input-group input.cf-settings-readonly {
+  background: #f1f3f7;
+  color: #8591a4;
+  cursor: not-allowed;
+}
+
+.cf-settings-input-group > small {
+  color: #9aa5b7;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.cf-settings-form-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding-top: 18px;
+  border-top: 1px solid #edf0f6;
+}
+
+.cf-settings-save-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8997ac;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.cf-settings-save-hint svg {
+  flex: 0 0 auto;
+  color: #299a65;
+}
+
+.cf-settings-save-button {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #2865e6, #174bbd);
+  color: white;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(37,99,235,.2);
+  transition: box-shadow .2s, opacity .2s;
+}
+
+.cf-settings-save-button:hover {
+  box-shadow: 0 9px 20px rgba(37,99,235,.27);
+}
+
+.cf-settings-save-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Shop plan area */
+
+.cf-settings-shop-plan {
+  overflow: hidden;
+}
+
+.cf-settings-shop-plan > :not(.cf-settings-form-heading) {
+  margin-top: 20px;
+}
+
+/* Loading states */
+
+.cf-account-loading,
+.cf-settings-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  color: #929eb1;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cf-settings-loading {
+  min-height: 55vh;
+}
+
+.cf-spin {
+  animation: cf-account-spin .85s linear infinite;
+}
+
+@keyframes cf-account-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   RESPONSIVE LAYOUT
+   ========================================================= */
+
+@media (max-width: 850px) {
+  .cf-account-page,
+  .cf-settings-page {
+    padding: 24px 20px 110px;
+  }
+
+  .cf-account-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-account-stats-panel {
+    padding: 19px;
+  }
+
+  .cf-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-settings-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
+    align-items: stretch;
+  }
+
+  .cf-settings-avatar-card {
+    min-width: 0;
+  }
+
+  .cf-settings-sidebar-note {
+    align-self: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .cf-account-page,
+  .cf-settings-page {
+    padding: 17px 14px 105px;
+  }
+
+  .cf-account-topbar,
+  .cf-settings-topbar {
+    gap: 11px;
+    margin-bottom: 20px;
+  }
+
+  .cf-account-back {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+    border-radius: 12px;
+  }
+
+  .cf-account-topbar h1,
+  .cf-settings-topbar h1 {
+    font-size: 21px;
+  }
+
+  .cf-account-overline {
+    font-size: 8px;
+    letter-spacing: 1.35px;
+  }
+
+  .cf-account-top-action {
+    padding: 10px;
+    font-size: 0;
+  }
+
+  .cf-account-top-action svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cf-account-welcome {
+    min-height: 175px;
+    padding: 25px 22px;
+    border-radius: 19px;
+  }
+
+  .cf-account-welcome h2 {
+    max-width: 290px;
+    font-size: 29px;
+  }
+
+  .cf-account-welcome p {
+    max-width: 280px;
+    font-size: 11px;
+  }
+
+  .cf-account-welcome-decoration {
+    position: absolute;
+    right: -72px;
+    bottom: -22px;
+    width: 155px;
+    height: 135px;
+    opacity: .55;
+  }
+
+  .cf-account-profile-card,
+  .cf-account-stats-panel {
+    border-radius: 17px;
+  }
+
+  .cf-account-profile-cover {
+    height: 75px;
+    padding: 16px;
+  }
+
+  .cf-account-profile-body {
+    gap: 10px;
+    padding: 0 14px 16px;
+  }
+
+  .cf-account-avatar-wrap {
+    width: 63px;
+    height: 63px;
+    flex-basis: 63px;
+    margin-top: -25px;
+  }
+
+  .cf-account-avatar {
+    width: 63px;
+    height: 63px;
+    border-radius: 18px;
+    font-size: 20px;
+  }
+
+  .cf-account-name-line h2 {
+    font-size: 14px;
+  }
+
+  .cf-account-email,
+  .cf-account-business {
+    font-size: 9px;
+  }
+
+  .cf-account-edit-link {
+    padding-left: 0;
+    font-size: 0;
+  }
+
+  .cf-account-edit-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cf-account-member-strip {
+    padding: 10px 14px;
+  }
+
+  .cf-account-member-strip > span {
+    font-size: 9px;
+  }
+
+  .cf-account-stats-panel {
+    padding: 17px 13px;
+  }
+
+  .cf-account-section-heading h3 {
+    font-size: 16px;
+  }
+
+  .cf-account-stats-grid {
+    gap: 6px;
+  }
+
+  .cf-account-stat {
+    min-height: 110px;
+    padding: 10px 8px;
+    border-radius: 11px;
+  }
+
+  .cf-account-stat-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .cf-account-stat-label {
+    font-size: 8px;
+  }
+
+  .cf-account-stat > strong {
+    font-size: 22px;
+  }
+
+  .cf-account-stat > small {
+    font-size: 8px;
+  }
+
+  .cf-account-referral {
+    padding: 18px 15px;
+    border-radius: 17px;
+  }
+
+  .cf-account-referral-main {
+    align-items: flex-start;
+    gap: 11px;
+    padding-right: 0;
+  }
+
+  .cf-account-referral-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    border-radius: 12px;
+  }
+
+  .cf-account-referral-icon svg {
+    width: 19px;
+  }
+
+  .cf-account-referral-main h3 {
+    max-width: 220px;
+    font-size: 15px;
+  }
+
+  .cf-account-referral-main p {
+    font-size: 10px;
+  }
+
+  .cf-account-referral-credit {
+    position: static;
+    align-items: flex-start;
+    margin: 13px 0 0 51px;
+  }
+
+  .cf-account-referral-credit strong {
+    font-size: 24px;
+  }
+
+  .cf-account-referral-bottom {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    padding-top: 13px;
+  }
+
+  .cf-account-referral-link {
+    font-size: 10px;
+  }
+
+  .cf-account-referral-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cf-account-copy,
+  .cf-account-share {
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .cf-account-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .cf-account-action {
+    min-height: 77px;
+    padding: 12px;
+    border-radius: 13px;
+  }
+
+  .cf-account-action-icon {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+  }
+
+  .cf-account-action-copy strong {
+    font-size: 11px;
+  }
+
+  .cf-account-action-copy small {
+    font-size: 9px;
+  }
+
+  .cf-account-footer {
+    margin-top: 25px;
+  }
+
+  .cf-account-footer button {
+    padding: 9px 11px;
+    font-size: 10px;
+  }
+
+  /* Settings mobile */
+
+  .cf-settings-secure-label {
+    padding: 8px;
+    font-size: 0;
+  }
+
+  .cf-settings-secure-label svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .cf-settings-intro {
+    min-height: 155px;
+    padding: 23px 19px;
+    border-radius: 18px;
+  }
+
+  .cf-settings-intro h2 {
+    font-size: 30px;
+  }
+
+  .cf-settings-intro p {
+    max-width: 270px;
+    font-size: 10px;
+  }
+
+  .cf-settings-intro-art {
+    position: absolute;
+    right: -26px;
+    bottom: -20px;
+    width: 85px;
+    height: 85px;
+    margin: 0;
+    opacity: .45;
+  }
+
+  .cf-settings-layout {
+    gap: 13px;
+  }
+
+  .cf-settings-sidebar {
+    display: flex;
+  }
+
+  .cf-settings-avatar-card {
+    padding: 18px 15px;
+    border-radius: 16px;
+  }
+
+  .cf-settings-avatar-wrap {
+    margin-top: 18px;
+  }
+
+  .cf-settings-sidebar-note {
+    padding: 12px;
+  }
+
+  .cf-settings-form,
+  .cf-settings-shop-plan {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+
+  .cf-settings-form-heading h3 {
+    font-size: 16px;
+  }
+
+  .cf-settings-form-heading p {
+    max-width: 250px;
+    font-size: 9px;
+  }
+
+  .cf-settings-fields {
+    grid-template-columns: 1fr;
+    gap: 17px;
+    padding: 19px 0;
+  }
+
+  .cf-settings-input-group input {
+    height: 46px;
+  }
+
+  .cf-settings-form-bottom {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cf-settings-save-hint {
+    order: 2;
+  }
+
+  .cf-settings-save-button {
+    width: 100%;
+    min-height: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-account-page *,
+  .cf-settings-page *,
+  .cf-account-page *::before,
+  .cf-settings-page *::before,
+  .cf-account-page *::after,
+  .cf-settings-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

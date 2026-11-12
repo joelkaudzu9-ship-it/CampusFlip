@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import {
-  UserRound, Store, Phone, Mail, Save, X, Camera, Trash2, LoaderCircle,
+  ArrowLeft, UserRound, Store, Phone, Mail, Save, Camera,
+  Trash2, LoaderCircle, ShieldCheck, ImagePlus, CheckCircle2,
 } from 'lucide-react';
 import ShopPlanUpgrade from './ShopPlanUpgrade';
+import './account-pages.css';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const springPhysics = { type: "spring", stiffness: 300, damping: 28, mass: 0.8 };
+const spring = { type: 'spring', stiffness: 280, damping: 26, mass: 0.8 };
 
 export default function AccountSettings({ session, onClose, onBack, onToast }) {
   const avatarInputRef = useRef(null);
@@ -32,7 +34,11 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
 
     async function loadProfile() {
       const userId = session?.user?.id;
-      if (!userId) { setLoading(false); return; }
+
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
       const [profileResult, contactResult] = await Promise.all([
         supabase
@@ -63,10 +69,12 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
       if (!contactResult.error) {
         setWhatsapp(contactResult.data?.whatsapp_number || '');
       }
+
       setLoading(false);
     }
 
     loadProfile();
+
     return () => { mounted = false; };
   }, [session?.user?.id, onToast]);
 
@@ -78,13 +86,17 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
   function handleAvatarSelection(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
+
     if (!file) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      onToast?.('Please choose a JPG, PNG or WebP image.', 'error'); return;
+      onToast?.('Please choose a JPG, PNG or WebP image.', 'error');
+      return;
     }
+
     if (file.size > MAX_AVATAR_SIZE) {
-      onToast?.('Your profile picture must be 5 MB or smaller.', 'error'); return;
+      onToast?.('Your profile picture must be 5 MB or smaller.', 'error');
+      return;
     }
 
     setAvatarPreview(URL.createObjectURL(file));
@@ -92,17 +104,31 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
   }
 
   async function uploadAvatar(file) {
-    if (!session?.user?.id) { onToast?.('Please sign in before uploading a picture.', 'error'); return; }
+    if (!session?.user?.id) {
+      onToast?.('Please sign in before uploading a picture.', 'error');
+      return;
+    }
+
     setAvatarUploading(true);
 
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      if (!sessionData?.session) throw new Error('Your session has expired. Please sign in again.');
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
 
-      const { data: signedData, error: signError } = await supabase.functions.invoke('cloudinary-sign');
+      if (sessionError) throw sessionError;
+
+      if (!sessionData?.session) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
+      const { data: signedData, error: signError } =
+        await supabase.functions.invoke('cloudinary-sign');
+
       if (signError) throw signError;
-      if (!signedData?.signature || !signedData?.cloud_name) throw new Error('Could not obtain an upload signature.');
+
+      if (!signedData?.signature || !signedData?.cloud_name) {
+        throw new Error('Could not obtain an upload signature.');
+      }
 
       const formData = new FormData();
       formData.append('file', file);
@@ -117,7 +143,10 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
       );
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || 'Cloudinary upload failed.');
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Cloudinary upload failed.');
+      }
 
       const { error: databaseError } = await supabase
         .from('profiles')
@@ -140,7 +169,9 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
 
   async function removeAvatar() {
     if (!session?.user?.id || !avatarUrl) return;
+
     setAvatarUploading(true);
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -162,8 +193,21 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
 
   async function handleSave(event) {
     event.preventDefault();
-    if (!displayName.trim()) { onToast?.('Please enter your full name.', 'error'); return; }
-    if (avatarUploading) { onToast?.('Please wait for your picture upload to finish.', 'error'); return; }
+
+    if (!displayName.trim()) {
+      onToast?.('Please enter your full name.', 'error');
+      return;
+    }
+
+    if (avatarUploading) {
+      onToast?.('Please wait for your picture upload to finish.', 'error');
+      return;
+    }
+
+    if (!session?.user?.id) {
+      onToast?.('Please sign in again before saving.', 'error');
+      return;
+    }
 
     setSaving(true);
     const userId = session.user.id;
@@ -185,17 +229,29 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
       if (cleanPhone) {
         const { error } = await supabase
           .from('seller_contacts')
-          .upsert({ user_id: userId, whatsapp_number: cleanPhone }, { onConflict: 'user_id' });
+          .upsert(
+            { user_id: userId, whatsapp_number: cleanPhone },
+            { onConflict: 'user_id' }
+          );
+
         contactError = error;
       } else {
-        const { error } = await supabase.from('seller_contacts').delete().eq('user_id', userId);
+        const { error } = await supabase
+          .from('seller_contacts')
+          .delete()
+          .eq('user_id', userId);
+
         contactError = error;
       }
 
-      if (contactError) throw new Error('Profile saved, but WhatsApp could not be updated: ' + contactError.message);
+      if (contactError) {
+        throw new Error(
+          'Profile saved, but WhatsApp could not be updated: ' +
+          contactError.message
+        );
+      }
 
       onToast?.('Your profile has been updated.');
-      // Use onBack so history stays balanced
       onBack?.();
     } catch (err) {
       console.error('Profile save error:', err);
@@ -205,101 +261,272 @@ export default function AccountSettings({ session, onClose, onBack, onToast }) {
     }
   }
 
-  const initials = (displayName || businessName || 'C').trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
+  const initials = (displayName || businessName || 'C')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('');
+
   const currentAvatar = avatarPreview || avatarUrl;
+  const leaveSettings = onBack || onClose;
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 16 }}>
-        <span className="cf-block-loader"></span>
-        <span style={{ color: '#94A3B8', fontSize: 13, fontWeight: 600 }}>Loading your settings...</span>
-      </div>
+      <main className="cf-settings-page cf-settings-loading">
+        <span className="cf-block-loader" />
+        <span>Loading your personal workspace...</span>
+      </main>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={springPhysics} className="cf-settings-form cf-settings-redesign" style={{ padding: '4px 0' }}>
-      <div className="cf-settings-heading" style={{ marginBottom: 24 }}>
+    <motion.main
+      className="cf-settings-page"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={spring}
+    >
+      <header className="cf-settings-topbar">
+        <motion.button
+          type="button"
+          whileHover={{ x: -3 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={leaveSettings}
+          className="cf-account-back"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={19} />
+        </motion.button>
+
         <div>
-          <span className="cf-eyebrow">ACCOUNT SETTINGS</span>
-          <h2>Personal details</h2>
-          <p>Keep your CampusFlip profile up to date.</p>
+          <span className="cf-account-overline">CAMPUSFLIP / PROFILE</span>
+          <h1>Personal details</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.9 }} type="button" className="cf-icon-close" onClick={onBack || onClose} aria-label="Close settings">
-          <X size={19} />
-        </motion.button>
-      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 24, borderBottom: '1px solid #E5EAF2', marginBottom: 24 }}>
-        <div style={{ position: 'relative', width: 104, height: 104, marginBottom: 14 }}>
-          <motion.div initial={false} animate={{ scale: avatarUploading ? 0.95 : 1 }} transition={springPhysics} style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'grid', placeItems: 'center', background: '#E8F0FF', color: '#2563EB', border: '4px solid white', boxShadow: '0 5px 22px rgba(16,28,58,.13)', fontSize: 28, fontWeight: 800 }}>
-            <AnimatePresence mode="wait">
-              <motion.div key={currentAvatar || 'initials'} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={springPhysics} style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
-                {currentAvatar ? <img src={currentAvatar} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+        <span className="cf-settings-secure-label">
+          <ShieldCheck size={15} /> Account
+        </span>
+      </header>
+
+      <section className="cf-settings-intro">
+        <div>
+          <span className="cf-account-overline">YOUR IDENTITY, YOUR WAY</span>
+          <h2>Make it <em>yours.</em></h2>
+          <p>
+            Keep your profile current so people on CampusFlip know who they're
+            buying from and how to reach you.
+          </p>
+        </div>
+
+        <div className="cf-settings-intro-art" aria-hidden="true">
+          <UserRound size={42} strokeWidth={1.2} />
+          <span><CheckCircle2 size={17} /></span>
+        </div>
+      </section>
+
+      <div className="cf-settings-layout">
+        <aside className="cf-settings-sidebar">
+          <div className="cf-settings-avatar-card">
+            <span className="cf-account-overline">PROFILE PREVIEW</span>
+
+            <div className="cf-settings-avatar-wrap">
+              <motion.div
+                className="cf-settings-avatar"
+                animate={{ scale: avatarUploading ? 0.96 : 1 }}
+                transition={spring}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentAvatar || 'initials'}
+                    initial={{ opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.88 }}
+                    transition={spring}
+                    className="cf-settings-avatar-content"
+                  >
+                    {currentAvatar
+                      ? <img src={currentAvatar} alt="Your profile" />
+                      : <span>{initials}</span>}
+                  </motion.div>
+                </AnimatePresence>
               </motion.div>
-            </AnimatePresence>
-          </motion.div>
 
-          <motion.button whileTap={{ scale: 0.85 }} type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} aria-label="Upload profile picture" style={{ position: 'absolute', right: 0, bottom: 0, width: 34, height: 34, display: 'grid', placeItems: 'center', border: '3px solid white', borderRadius: '50%', background: '#2563EB', color: 'white', cursor: avatarUploading ? 'wait' : 'pointer', boxShadow: '0 3px 10px rgba(37,99,235,.25)' }}>
-            {avatarUploading ? <LoaderCircle size={16} className="cf-spin" /> : <Camera size={16} />}
-          </motion.button>
-        </div>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="cf-settings-avatar-camera"
+                aria-label="Upload profile picture"
+              >
+                {avatarUploading
+                  ? <LoaderCircle size={17} className="cf-spin" />
+                  : <Camera size={17} />}
+              </motion.button>
+            </div>
 
-        <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleAvatarSelection} disabled={avatarUploading} />
+            <h3>{displayName || 'Your name'}</h3>
+            <p>{session?.user?.email || 'Your email address'}</p>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #DCE6F5', borderRadius: 10, background: 'white', color: '#2563EB', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            <Camera size={14} /> Change picture
-          </motion.button>
-          {avatarUrl && (
-            <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={removeAvatar} disabled={avatarUploading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', border: '1px solid #F1DDDD', borderRadius: 10, background: 'white', color: '#C34A4A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              <Trash2 size={14} /> Remove
-            </motion.button>
-          )}
-        </div>
-        <span style={{ color: '#94A3B8', fontSize: 11, marginTop: 12 }}>JPG, PNG or WebP · Max 5 MB</span>
+            {businessName && (
+              <span className="cf-settings-business-preview">
+                <Store size={13} /> {businessName}
+              </span>
+            )}
+
+            <div className="cf-settings-avatar-actions">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+              >
+                <ImagePlus size={15} /> Change photo
+              </button>
+
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={removeAvatar}
+                  disabled={avatarUploading}
+                  className="cf-settings-remove-photo"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={handleAvatarSelection}
+              disabled={avatarUploading}
+            />
+
+            <span className="cf-settings-image-note">
+              JPG, PNG or WebP · Maximum 5 MB
+            </span>
+          </div>
+
+          <div className="cf-settings-sidebar-note">
+            <span><ShieldCheck size={17} /></span>
+            <div>
+              <strong>Your account stays yours.</strong>
+              <p>Your email address is displayed for reference and cannot be changed here.</p>
+            </div>
+          </div>
+        </aside>
+
+        <section className="cf-settings-main">
+          <form onSubmit={handleSave} className="cf-settings-form">
+            <div className="cf-settings-form-heading">
+              <div>
+                <span className="cf-account-overline">01 — PERSONAL INFORMATION</span>
+                <h3>Profile information</h3>
+                <p>These details help identify you across the marketplace.</p>
+              </div>
+              <UserRound size={22} />
+            </div>
+
+            <div className="cf-settings-fields">
+              <label className="cf-settings-input-group">
+                <span><UserRound size={15} /> Full name <i>Required</i></span>
+                <input
+                  value={displayName}
+                  onChange={event => setDisplayName(event.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                  maxLength={80}
+                />
+                <small>Your name as it appears to other CampusFlip members.</small>
+              </label>
+
+              <label className="cf-settings-input-group">
+                <span><Store size={15} /> Business name <i>Optional</i></span>
+                <input
+                  value={businessName}
+                  onChange={event => setBusinessName(event.target.value)}
+                  placeholder="Your shop or business name"
+                  maxLength={100}
+                />
+                <small>Give your shop a recognisable identity.</small>
+              </label>
+
+              <label className="cf-settings-input-group">
+                <span><Mail size={15} /> Email address</span>
+                <input
+                  value={session?.user?.email || ''}
+                  readOnly
+                  className="cf-settings-readonly"
+                />
+                <small>Your sign-in email address cannot be edited here.</small>
+              </label>
+
+              <label className="cf-settings-input-group">
+                <span><Phone size={15} /> WhatsApp number <i>Optional</i></span>
+                <input
+                  value={whatsapp}
+                  onChange={event => setWhatsapp(event.target.value)}
+                  placeholder="e.g. 0991234567"
+                  inputMode="tel"
+                />
+                <small>
+                  Buyers use this number to contact you about your active listings.
+                </small>
+              </label>
+            </div>
+
+            <div className="cf-settings-form-bottom">
+              <span className="cf-settings-save-hint">
+                <ShieldCheck size={15} /> Your changes are saved securely.
+              </span>
+
+              <motion.button
+                type="submit"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                disabled={saving || avatarUploading}
+                className="cf-settings-save-button"
+              >
+                {saving
+                  ? <LoaderCircle size={17} className="cf-spin" />
+                  : <Save size={17} />}
+                {saving ? 'Saving changes...' : 'Save changes'}
+              </motion.button>
+            </div>
+          </form>
+
+          <motion.section
+            className="cf-settings-shop-plan"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.12 }}
+          >
+            <div className="cf-settings-form-heading">
+              <div>
+                <span className="cf-account-overline">02 — SELLER TOOLS</span>
+                <h3>Your shop plan</h3>
+                <p>Manage your seller verification and shop plan.</p>
+              </div>
+              <Store size={22} />
+            </div>
+
+            <ShopPlanUpgrade
+              initialPhone={whatsapp}
+              onToast={onToast}
+              isVerified={isVerified}
+              planExpiresAt={planExpiresAt}
+              onPlanActivated={() => {
+                setIsVerified(true);
+                onToast?.('Your verified shop plan is active!');
+              }}
+            />
+          </motion.section>
+        </section>
       </div>
-
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <label className="cf-settings-field" style={{ marginBottom: 0 }}>
-          <span><UserRound size={16} /> Full name</span>
-          <motion.input whileFocus={{ scale: 1.01 }} transition={springPhysics} value={displayName} onChange={event => setDisplayName(event.target.value)} placeholder="Your full name" required maxLength={80} style={{ transition: 'box-shadow 0.2s', boxShadow: '0 0 0 0px rgba(37,99,235,0)' }} />
-        </label>
-
-        <label className="cf-settings-field" style={{ marginBottom: 0 }}>
-          <span><Store size={16} /> Business name <small>Optional</small></span>
-          <motion.input whileFocus={{ scale: 1.01 }} transition={springPhysics} value={businessName} onChange={event => setBusinessName(event.target.value)} placeholder="Your shop or business name" maxLength={100} />
-        </label>
-
-        <label className="cf-settings-field" style={{ marginBottom: 0 }}>
-          <span><Mail size={16} /> Email address</span>
-          <input value={session?.user?.email || ''} readOnly style={{ opacity: 0.6 }} />
-        </label>
-
-        <label className="cf-settings-field" style={{ marginBottom: 0 }}>
-          <span><Phone size={16} /> WhatsApp number</span>
-          <motion.input whileFocus={{ scale: 1.01 }} transition={springPhysics} value={whatsapp} onChange={event => setWhatsapp(event.target.value)} placeholder="e.g. 0991234567" inputMode="tel" />
-          <small>Buyers use this number to contact you about active listings.</small>
-        </label>
-
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} className="cf-settings-save" type="submit" disabled={saving || avatarUploading} style={{ marginTop: 8 }}>
-          {saving ? <LoaderCircle size={17} className="cf-spin" /> : <Save size={17} />}
-          {saving ? 'Saving changes...' : 'Save changes'}
-        </motion.button>
-      </form>
-
-      <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #E5EAF2' }}>
-        <ShopPlanUpgrade
-          initialPhone={whatsapp}
-          onToast={onToast}
-          isVerified={isVerified}
-          planExpiresAt={planExpiresAt}
-          onPlanActivated={() => {
-            setIsVerified(true);
-            onToast?.('Your verified shop plan is active!');
-          }}
-        />
-      </div>
-    </motion.div>
+    </motion.main>
   );
 }
