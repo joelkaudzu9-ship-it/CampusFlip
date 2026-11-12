@@ -204,20 +204,18 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           photos
         });
 
-        // Fire view tracker and optimistically increment the local counter so
-        // the badge reflects the new count immediately without a second fetch.
-        trackListingView(data.id).then(result => {
-          if (cancelled) return;
-          if (result && typeof result.views === 'number') {
-            setDetails(prev => prev ? { ...prev, views_count: result.views } : prev);
-          } else {
-            // Fallback: bump locally by one so the user sees their own view.
-            setDetails(prev => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : prev);
-          }
-        }).catch(() => {
-          if (cancelled) return;
+        // Fire view tracker safely (wrapped in a try-catch just in case)
+        try {
+          trackListingView(data.id);
+        } catch (e) {
+          console.warn('View tracking failed:', e);
+        }
+
+        // Optimistically increment the local counter so the badge reflects 
+        // the new count immediately without crashing if the tracker is sync.
+        if (!cancelled) {
           setDetails(prev => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : prev);
-        });
+        }
 
         const { data: profile } = await supabase
           .from('profiles')

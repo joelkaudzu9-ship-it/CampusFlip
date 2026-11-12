@@ -27,6 +27,27 @@ export default function AccountSettings({ session, onClose, onToast }) {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
 
+  // ── Handle hardware back button (popstate) ──────────────────────────────
+  useEffect(() => {
+    // Push a dummy history state so pressing back doesn't leave the page
+    window.history.pushState({ modal: 'account-settings' }, '');
+
+    const handlePopState = () => {
+      // When the user presses back, close the modal instead of navigating
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // If the modal was closed via the X button (not popstate), we need to
+      // clean up the dummy history state we pushed.
+      if (window.history.state?.modal === 'account-settings') {
+        window.history.back();
+      }
+    };
+  }, [onClose]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -68,7 +89,7 @@ export default function AccountSettings({ session, onClose, onToast }) {
 
     loadProfile();
     return () => { mounted = false; };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, onToast]);
 
   useEffect(() => {
     if (!avatarPreview) return;
