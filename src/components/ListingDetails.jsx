@@ -45,6 +45,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
   const [sharing, setSharing] = useState(false);
   const [flashDeal, setFlashDeal] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -54,10 +55,12 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
 
   const [isSaved, setIsSaved] = useState(false);
   const [savingBookmark, setSavingBookmark] = useState(false);
-  const [touchStartX, setTouchStartX] = useState(null);
 
   const [showLightbox, setShowLightbox] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+
+  // Track whether the last interaction was a drag, so a swipe doesn't also open the lightbox.
+  const draggedRef = useRef(false);
 
   const listingId = listing?.id;
   const thumbsRef = useRef(null);
@@ -66,6 +69,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
 
   useEffect(() => {
     setImageLoaded(false);
+    setImageError(false);
   }, [photoIndex, listingId]);
 
   useEffect(() => {
@@ -204,15 +208,12 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           photos
         });
 
-        // Fire view tracker safely (wrapped in a try-catch just in case)
         try {
           trackListingView(data.id);
         } catch (e) {
           console.warn('View tracking failed:', e);
         }
 
-        // Optimistically increment the local counter so the badge reflects 
-        // the new count immediately without crashing if the tracker is sync.
         if (!cancelled) {
           setDetails(prev => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : prev);
         }
@@ -325,19 +326,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
     }
   }, []);
 
-  function handleTouchStart(e) { setTouchStartX(e.touches[0].clientX); }
-
-  function handleTouchEnd(e) {
-    if (touchStartX === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(deltaX) > 60 && (details?.photos?.length || 0) > 1) {
-      if (deltaX > 0) goToPhoto((photoIndex + details.photos.length - 1) % details.photos.length);
-      else goToPhoto((photoIndex + 1) % details.photos.length);
-    }
-    setTouchStartX(null);
-  }
-
-  // ── Swipe-down-to-dismiss: only when scroll is at top ────────────────────
+  // ── Swipe-down-to-dismiss (outer sheet only) ─────────────────────────────
   function handleDragEnd(_event, info) {
     const scrollTop = scrollRef.current?.scrollTop ?? 0;
     if (scrollTop <= 0 && (info.offset.y > 120 || info.velocity.y > 500)) {
@@ -453,35 +442,59 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           ) : details && (
             <>
               {/* ═══════════════════════════════════════════════════
-                  HERO — image with floating price pill + share only
+                  HERO — live drag gallery + floating price pill + share
                   ═══════════════════════════════════════════════════ */}
               <div
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onClick={() => currentPhoto && setShowLightbox(true)}
                 style={{
                   position: 'relative',
                   height: 'clamp(280px, 52vh, 420px)',
                   background: '#EDF3FC',
                   overflow: 'hidden',
                   cursor: currentPhoto ? 'zoom-in' : 'default',
+                  touchAction: 'pan-y',
                 }}
               >
-                <AnimatePresence mode="wait">
-                  {currentPhoto ? (
+                <AnimatePresence mode="wait" initial={false}>
+                  {currentPhoto && !imageError ? (
                     <motion.img
                       key={currentPhoto}
                       src={currentPhoto}
                       alt={details.title}
+                      draggable={false}
                       onLoad={() => setImageLoaded(true)}
-                      initial={{ opacity: 0, scale: 1.04 }}
+                      onError={() => { setImageLoaded(true); setImageError(true); }}
+                      onClick={() => {
+                        // Ignore the click that follows a drag gesture.
+                        if (draggedRef.current) { draggedRef.current = false; return; }
+                        setShowLightbox(true);
+                      }}
+                      initial={{ opacity: 0, scale: 1.03 }}
                       animate={{ opacity: imageLoaded ? 1 : 0, scale: 1 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      drag={photos.length > 1 ? 'x' : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.15}
+                      onDragStart={() => { draggedRef.current = true; }}
+                      onDragEnd={(_e, info) => {
+                        const threshold = 60;
+                        if (info.offset.x < -threshold) {
+                          goToPhoto((photoIndex + 1) % photos.length);
+                        } else if (info.offset.x > threshold) {
+                          goToPhoto((photoIndex + photos.length - 1) % photos.length);
+                        }
+                        // Slight delay so the click event that fires after the drag
+                        // is suppressed by draggedRef check.
+                        setTimeout(() => { draggedRef.current = false; }, 0);
+                      }}
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
                         display: 'block',
+                        cursor: 'zoom-in',
+                        userSelect: 'none',
+                        WebkitUserDrag: 'none',
                       }}
                     />
                   ) : (
@@ -499,7 +512,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   )}
                 </AnimatePresence>
 
-                {!imageLoaded && currentPhoto && (
+                {!imageLoaded && currentPhoto && !imageError && (
                   <div
                     style={{
                       position: 'absolute',
@@ -541,7 +554,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   }}
                 />
 
-                {/* Share button — right aligned, lower so it clears the notch */}
+                {/* Share button */}
                 <div
                   style={{
                     position: 'absolute',
@@ -696,6 +709,47 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </div>
                 </div>
 
+                {/* Photo dots — centered pill above the bottom labels */}
+                {photos.length > 1 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 74,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      gap: 5,
+                      padding: '6px 10px',
+                      borderRadius: 20,
+                      background: 'rgba(16,28,58,.5)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      zIndex: 4,
+                    }}
+                  >
+                    {photos.map((_, i) => (
+                      <motion.button
+                        key={i}
+                        onClick={(e) => { e.stopPropagation(); goToPhoto(i); }}
+                        animate={{
+                          width: i === photoIndex ? 18 : 6,
+                          backgroundColor: i === photoIndex ? '#fff' : 'rgba(255,255,255,.5)',
+                        }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        style={{
+                          height: 6,
+                          borderRadius: 3,
+                          border: 0,
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                        aria-label={`Photo ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Prev/next arrows (desktop nicety — still useful) */}
                 {photos.length > 1 && (
                   <>
                     <motion.button
@@ -1111,7 +1165,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           )}
 
           {/* ═══════════════════════════════════════════════════
-              LIGHTBOX
+              LIGHTBOX — swipeable, cross-faded
               ═══════════════════════════════════════════════════ */}
           {typeof document !== 'undefined' && createPortal(
             <AnimatePresence>
@@ -1150,25 +1204,45 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                       display: 'grid',
                       placeItems: 'center',
                       cursor: 'pointer',
+                      zIndex: 2,
                     }}
                   >
                     <X size={22} />
                   </motion.button>
 
-                  <motion.img
-                    key={currentPhoto}
-                    src={currentPhoto}
-                    alt={details?.title || ''}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={springPhysics}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                      borderRadius: 8,
-                    }}
-                  />
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.img
+                      key={currentPhoto}
+                      src={currentPhoto}
+                      alt={details?.title || ''}
+                      draggable={false}
+                      initial={{ scale: 0.92, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.92, opacity: 0 }}
+                      transition={springPhysics}
+                      drag={photos.length > 1 ? 'x' : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.25}
+                      onDragEnd={(_e, info) => {
+                        const threshold = 60;
+                        if (info.offset.x < -threshold) {
+                          goToPhoto((photoIndex + 1) % photos.length);
+                        } else if (info.offset.x > threshold) {
+                          goToPhoto((photoIndex + photos.length - 1) % photos.length);
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        borderRadius: 8,
+                        cursor: photos.length > 1 ? 'grab' : 'default',
+                        userSelect: 'none',
+                        WebkitUserDrag: 'none',
+                      }}
+                    />
+                  </AnimatePresence>
 
                   {photos.length > 1 && (
                     <>
@@ -1456,7 +1530,7 @@ const submitButton = {
   borderRadius: 12,
   border: 0,
   background: '#2563EB',
-  color: 'white',
+  color: '#fff',
   fontWeight: 800,
   cursor: 'pointer',
 };
