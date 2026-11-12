@@ -283,6 +283,45 @@ export default function App() {
     return match ? match[1] : null;
   });
 
+  // On mount, if URL has ?listing=<id>, open that listing
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get('listing');
+    if (!listingId) return;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('listings')
+        .select(`id, seller_id, title, price, kind, status, is_boosted, created_at,
+                 categories(name, slug), meeting_spots(name),
+                 listing_photos(image_url, display_order)`)
+        .eq('id', listingId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error || !data) {
+        ping('This listing is no longer available.', 'error');
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
+
+      let seller = null;
+      if (data.seller_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, display_name, business_name, is_verified')
+          .eq('id', data.seller_id)
+          .maybeSingle();
+        seller = profile;
+      }
+
+      setSelectedListing(mapListing(data, seller));
+      window.history.replaceState({}, '', window.location.pathname);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [showOnboarding, setShowOnboarding] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('campusflip_onboarded');
