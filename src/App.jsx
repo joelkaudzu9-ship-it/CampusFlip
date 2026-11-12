@@ -679,8 +679,8 @@ export default function App() {
 
   function handleRequireAuth(intent) { setContactIntent(intent); }
 
-  function handleProceedToAuth() {
-    pendingContact.current = contactIntent;
+  function handleProceedToAuth(replyId) {
+    pendingContact.current = { ...contactIntent, replyId };
     setContactIntent(null);
     setTimeout(() => setShowAuth(true), 50);
   }

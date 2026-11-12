@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, X, ArrowLeft, Clock3, TrendingUp, MapPin,
-  ShoppingBasket, Heart, ShieldCheck, ShoppingBag,
+  ShoppingBasket, Heart, ShieldCheck, ShoppingBag, Sparkles,
 } from 'lucide-react';
 import {
   getRecentSearches,
@@ -11,8 +11,9 @@ import {
 } from '../lib/recentSearches';
 
 const spring = { type: 'spring', stiffness: 300, damping: 28 };
-
 const money = n => `MK ${Number(n || 0).toLocaleString('en-US')}`;
+
+const CATEGORY_SHORTCUTS = ['Books', 'Electronics', 'Clothes', 'Food'];
 
 export default function SearchPage({
   items,
@@ -58,6 +59,28 @@ export default function SearchPage({
     return list;
   }, [items, trimmedQuery]);
 
+  // Trending: top 6 most-viewed listings' shortest distinctive keyword
+  const trending = useMemo(() => {
+    const sorted = [...items].sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
+    const seen = new Set();
+    const list = [];
+    for (const item of sorted) {
+      // Pull the shortest word (2+ chars, not a number)
+      const words = item.title
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length >= 3 && !/^\d+$/.test(w));
+      for (const w of words) {
+        if (seen.has(w)) continue;
+        seen.add(w);
+        list.push(w);
+        break;
+      }
+      if (list.length >= 6) break;
+    }
+    return list;
+  }, [items]);
+
   function commit(value) {
     const v = String(value || '').trim();
     if (!v || v.length < 2) return;
@@ -82,14 +105,16 @@ export default function SearchPage({
     setRecent([]);
   }
 
-  function handleBack() {
-    onBack?.();
+  function handleCategoryTap(cat) {
+    setQuery(cat);
+    commit(cat);
+    inputRef.current?.focus();
   }
 
   const showRecent = !query.trim() && recent.length > 0;
   const showSuggestions = trimmedQuery.length >= 2 && suggestions.length > 0 && results.length === 0;
   const showResults = trimmedQuery.length >= 2;
-  const showHint = !query.trim() && recent.length === 0;
+  const showEmpty = !query.trim() && recent.length === 0;
 
   return (
     <motion.main
@@ -102,7 +127,7 @@ export default function SearchPage({
         paddingBottom: 40,
       }}
     >
-      {/* Sticky search header */}
+      {/* Sticky header */}
       <div
         style={{
           position: 'sticky',
@@ -120,7 +145,7 @@ export default function SearchPage({
       >
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={handleBack}
+          onClick={onBack}
           aria-label="Back"
           style={{
             width: 40,
@@ -151,7 +176,6 @@ export default function SearchPage({
             background: '#fff',
             border: '1px solid #E5EAF2',
             borderRadius: 14,
-            transition: 'border-color 0.2s, box-shadow 0.2s',
           }}
         >
           <Search size={17} color="#94A3B8" style={{ flexShrink: 0 }} />
@@ -204,44 +228,140 @@ export default function SearchPage({
         </form>
       </div>
 
-      {/* Content */}
       <div style={{ padding: '20px 16px' }}>
 
-        {/* Hint state (no query, no history) */}
-        {showHint && (
+        {/* Empty state — trending + categories */}
+        {showEmpty && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={spring}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 300,
-              textAlign: 'center',
-              color: '#94A3B8',
-            }}
           >
-            <div style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: 'rgba(37,99,235,.08)',
-              color: '#2563EB',
-              display: 'grid',
-              placeItems: 'center',
-              marginBottom: 16,
-            }}>
-              <Search size={28} />
+            {trending.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: 1,
+                  color: '#94A3B8',
+                  marginBottom: 12,
+                  padding: '0 4px',
+                }}>
+                  <TrendingUp size={13} />
+                  Trending on CampusFlip
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}>
+                  {trending.map((term, i) => (
+                    <motion.button
+                      key={term}
+                      type="button"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ ...spring, delay: i * 0.04 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleRecentTap(term)}
+                      style={{
+                        padding: '10px 16px',
+                        border: '1px solid #E5EAF2',
+                        borderRadius: 20,
+                        background: '#fff',
+                        color: '#101C3A',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 2px 8px rgba(16,28,58,.04)',
+                      }}
+                    >
+                      <Sparkles size={12} color="#F5A623" />
+                      {term}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: 1,
+                color: '#94A3B8',
+                marginBottom: 12,
+                padding: '0 4px',
+              }}>
+                <ShoppingBasket size={13} />
+                Browse by category
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                {CATEGORY_SHORTCUTS.map((cat, i) => (
+                  <motion.button
+                    key={cat}
+                    type="button"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...spring, delay: 0.1 + i * 0.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => handleCategoryTap(cat)}
+                    style={{
+                      padding: '16px 14px',
+                      borderRadius: 14,
+                      border: '1px solid #E5EAF2',
+                      background: 'linear-gradient(135deg, #fff 0%, #F5F8FF 100%)',
+                      color: '#101C3A',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    {cat}
+                    <ArrowRight size={14} color="#2563EB" />
+                  </motion.button>
+                ))}
+              </div>
             </div>
-            <b style={{ fontSize: 16, color: '#101C3A', marginBottom: 6 }}>
-              Search CampusFlip
-            </b>
-            <p style={{ fontSize: 13, maxWidth: 280, lineHeight: 1.6, margin: 0 }}>
-              Find textbooks, electronics, calculators, and anything else
-              other students are selling right now.
-            </p>
+
+            <div style={{
+              marginTop: 30,
+              padding: 16,
+              borderRadius: 16,
+              background: 'linear-gradient(135deg, #EFF5FF 0%, #DCE7FF 100%)',
+              border: '1px solid #BFDBFE',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: 40, height: 40,
+                borderRadius: 12,
+                background: '#2563EB',
+                color: '#fff',
+                display: 'grid', placeItems: 'center',
+                margin: '0 auto 12px',
+              }}>
+                <Search size={20} />
+              </div>
+              <b style={{ display: 'block', fontSize: 14, color: '#101C3A', marginBottom: 4 }}>
+                Search for anything
+              </b>
+              <p style={{ margin: 0, fontSize: 12, color: '#4B5563', lineHeight: 1.6 }}>
+                Try the name of a textbook, a calculator, or a piece of clothing you need this semester.
+              </p>
+            </div>
           </motion.div>
         )}
 
@@ -267,7 +387,6 @@ export default function SearchPage({
                 fontWeight: 800,
                 letterSpacing: 1,
                 color: '#94A3B8',
-                textTransform: 'uppercase',
               }}>
                 <Clock3 size={13} />
                 Recent searches
@@ -288,7 +407,6 @@ export default function SearchPage({
                 Clear
               </button>
             </div>
-
             <div style={{
               background: '#fff',
               borderRadius: 16,
@@ -320,6 +438,20 @@ export default function SearchPage({
                 >
                   <Clock3 size={15} color="#94A3B8" />
                   <span style={{ flex: 1 }}>{term}</span>
+                  {i === 0 && (
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      color: '#2563EB',
+                      background: '#E5EDFB',
+                      padding: '2px 6px',
+                      borderRadius: 6,
+                      letterSpacing: 0.5,
+                      textTransform: 'uppercase',
+                    }}>
+                      Recent
+                    </span>
+                  )}
                   <Search size={14} color="#94A3B8" />
                 </motion.button>
               ))}
@@ -327,7 +459,7 @@ export default function SearchPage({
           </motion.div>
         )}
 
-        {/* Suggestions while typing (only when no results yet) */}
+        {/* Suggestions while typing */}
         {showSuggestions && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -397,9 +529,15 @@ export default function SearchPage({
               display: 'flex',
               alignItems: 'baseline',
               justifyContent: 'space-between',
-              padding: '0 4px 12px',
+              padding: '0 4px 14px',
             }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#101C3A' }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 800,
+                color: '#101C3A',
+                letterSpacing: -0.3,
+              }}>
                 {results.length === 0
                   ? 'No results'
                   : `${results.length} ${results.length === 1 ? 'result' : 'results'}`}
@@ -416,37 +554,79 @@ export default function SearchPage({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={spring}
-                style={{
+              >
+                <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  minHeight: 260,
+                  minHeight: 200,
                   textAlign: 'center',
                   background: '#fff',
                   borderRadius: 20,
                   border: '1px dashed #E5EAF2',
                   padding: 30,
-                }}
-              >
-                <div style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 18,
-                  background: 'rgba(37,99,235,.08)',
-                  color: '#2563EB',
-                  display: 'grid',
-                  placeItems: 'center',
-                  marginBottom: 14,
+                  marginBottom: 20,
                 }}>
-                  <Search size={24} />
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 18,
+                    background: 'rgba(37,99,235,.08)',
+                    color: '#2563EB',
+                    display: 'grid',
+                    placeItems: 'center',
+                    marginBottom: 14,
+                  }}>
+                    <Search size={24} />
+                  </div>
+                  <b style={{ fontSize: 16, color: '#101C3A', marginBottom: 6 }}>
+                    Nothing matches "{query}"
+                  </b>
+                  <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, maxWidth: 260, lineHeight: 1.6 }}>
+                    Try a shorter word, or check your spelling.
+                  </p>
                 </div>
-                <b style={{ fontSize: 15, color: '#101C3A', marginBottom: 6 }}>
-                  Nothing matches "{query}"
-                </b>
-                <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, maxWidth: 260, lineHeight: 1.6 }}>
-                  Try a shorter word, or check your spelling.
-                </p>
+
+                {trending.length > 0 && (
+                  <div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      letterSpacing: 1,
+                      color: '#94A3B8',
+                      marginBottom: 12,
+                      padding: '0 4px',
+                    }}>
+                      <Sparkles size={13} />
+                      Try one of these
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {trending.slice(0, 4).map(term => (
+                        <motion.button
+                          key={term}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleRecentTap(term)}
+                          style={{
+                            padding: '8px 14px',
+                            border: '1px solid #E5EAF2',
+                            borderRadius: 20,
+                            background: '#fff',
+                            color: '#101C3A',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {term}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -483,12 +663,7 @@ export default function SearchPage({
                   >
                     <div style={{ position: 'relative', aspectRatio: '1 / 1', background: '#EEF3FC' }}>
                       {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        <img src={item.image} alt={item.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: '#9AACC8' }}>
                           <ShoppingBag size={28} />
@@ -546,37 +721,18 @@ export default function SearchPage({
                       }}>
                         {item.title}
                       </h3>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        marginTop: 6,
-                        fontSize: 10,
-                        color: '#94A3B8',
-                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 10, color: '#94A3B8' }}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {item.businessName || item.sellerName}
                         </span>
                         {item.isVerified && <ShieldCheck size={10} color="#2563EB" />}
                       </div>
-                      {item.kind === 'sale' && (
-                        <b style={{ display: 'block', marginTop: 6, color: '#2563EB', fontSize: 14 }}>
-                          {money(item.price)}
-                        </b>
-                      )}
+                      {item.kind === 'sale' && <b style={{ display: 'block', marginTop: 6, color: '#2563EB', fontSize: 14 }}>{money(item.price)}</b>}
                       {item.kind === 'wanted' && <b style={{ display: 'block', marginTop: 6, color: '#2563EB', fontSize: 14 }}>Wanted</b>}
                       {item.kind === 'free' && <b style={{ display: 'block', marginTop: 6, color: '#15803D', fontSize: 14 }}>Free</b>}
                       {item.kind === 'lost_found' && <b style={{ display: 'block', marginTop: 6, color: '#2563EB', fontSize: 14 }}>Lost & Found</b>}
-                      <p style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        margin: '4px 0 0',
-                        fontSize: 10,
-                        color: '#94A3B8',
-                      }}>
-                        <MapPin size={9} />
-                        {item.location}
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 3, margin: '4px 0 0', fontSize: 10, color: '#94A3B8' }}>
+                        <MapPin size={9} /> {item.location}
                       </p>
                     </div>
                   </motion.article>
