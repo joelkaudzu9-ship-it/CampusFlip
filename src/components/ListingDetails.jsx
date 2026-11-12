@@ -4,8 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   X, ChevronLeft, ChevronRight, MapPin,
   ShieldCheck, Image as ImageIcon, LoaderCircle,
-  MessageCircle, Flag, AlertCircle, Bookmark,
-  Share2, Navigation, Calendar, Zap, ArrowLeft,
+  MessageCircle, Flag, AlertCircle,
+  Share2, Navigation, Calendar, Zap,
   Eye, Heart,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -204,7 +204,20 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           photos
         });
 
-        trackListingView(data.id);
+        // Fire view tracker and optimistically increment the local counter so
+        // the badge reflects the new count immediately without a second fetch.
+        trackListingView(data.id).then(result => {
+          if (cancelled) return;
+          if (result && typeof result.views === 'number') {
+            setDetails(prev => prev ? { ...prev, views_count: result.views } : prev);
+          } else {
+            // Fallback: bump locally by one so the user sees their own view.
+            setDetails(prev => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : prev);
+          }
+        }).catch(() => {
+          if (cancelled) return;
+          setDetails(prev => prev ? { ...prev, views_count: (prev.views_count || 0) + 1 } : prev);
+        });
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -401,7 +414,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           style={{
             width: '100%',
             maxWidth: 680,
-            maxHeight: '96dvh',
+            maxHeight: '92dvh',
             overflowY: 'auto',
             overscrollBehavior: 'contain',
             position: 'relative',
@@ -442,7 +455,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
           ) : details && (
             <>
               {/* ═══════════════════════════════════════════════════
-                  HERO — image with floating price pill + actions
+                  HERO — image with floating price pill + share only
                   ═══════════════════════════════════════════════════ */}
               <div
                 onTouchStart={handleTouchStart}
@@ -450,7 +463,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 onClick={() => currentPhoto && setShowLightbox(true)}
                 style={{
                   position: 'relative',
-                  height: 'clamp(320px, 58vh, 480px)',
+                  height: 'clamp(280px, 52vh, 420px)',
                   background: '#EDF3FC',
                   overflow: 'hidden',
                   cursor: currentPhoto ? 'zoom-in' : 'default',
@@ -512,7 +525,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   }}
                 />
 
-                {/* ── Drag handle pill — mobile swipe-to-dismiss affordance ── */}
+                {/* Drag handle pill */}
                 <div
                   style={{
                     position: 'absolute',
@@ -530,51 +543,29 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   }}
                 />
 
-                {/* Top controls — arrow (back) + X (close) + share */}
+                {/* Share button — right aligned, lower so it clears the notch */}
                 <div
                   style={{
                     position: 'absolute',
-                    top: 22,
-                    left: 14,
+                    top: 'calc(env(safe-area-inset-top, 0px) + 22px)',
                     right: 14,
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
                     gap: 8,
+                    zIndex: 4,
                   }}
                 >
                   <motion.button
                     whileTap={{ scale: 0.88 }}
-                    onClick={(e) => { e.stopPropagation(); onClose?.(); }}
-                    aria-label="Back to browsing"
+                    onClick={(e) => { e.stopPropagation(); shareListing(); }}
+                    disabled={sharing}
+                    aria-label="Share"
                     style={heroIconButton}
                   >
-                    <ArrowLeft size={19} />
+                    {sharing ? <LoaderCircle size={18} className="cf-spin" /> : <Share2 size={18} />}
                   </motion.button>
-
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <motion.button
-                      whileTap={{ scale: 0.88 }}
-                      onClick={(e) => { e.stopPropagation(); shareListing(); }}
-                      disabled={sharing}
-                      aria-label="Share"
-                      style={heroIconButton}
-                    >
-                      {sharing ? <LoaderCircle size={18} className="cf-spin" /> : <Share2 size={18} />}
-                    </motion.button>
-
-                    <motion.button
-                      whileTap={{ scale: 0.88 }}
-                      onClick={(e) => { e.stopPropagation(); onClose?.(); }}
-                      aria-label="Close"
-                      style={heroIconButton}
-                    >
-                      <X size={19} />
-                    </motion.button>
-                  </div>
                 </div>
 
-                {/* Flash deal badge — floating top-center */}
+                {/* Flash deal badge */}
                 {flashDeal && (
                   <motion.div
                     initial={{ opacity: 0, y: -8, scale: 0.9 }}
@@ -582,7 +573,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                     transition={springPhysics}
                     style={{
                       position: 'absolute',
-                      top: 78,
+                      top: 'calc(env(safe-area-inset-top, 0px) + 76px)',
                       left: '50%',
                       transform: 'translateX(-50%)',
                       padding: '6px 12px',
@@ -603,7 +594,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </motion.div>
                 )}
 
-                {/* Bottom hero content — price pill + category + views */}
+                {/* Bottom hero content */}
                 <div
                   style={{
                     position: 'absolute',
@@ -1149,7 +1140,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                     aria-label="Close"
                     style={{
                       position: 'absolute',
-                      top: 20,
+                      top: 'calc(env(safe-area-inset-top, 0px) + 20px)',
                       right: 20,
                       width: 44,
                       height: 44,

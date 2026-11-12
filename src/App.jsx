@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { useBackButton } from './lib/useBackButton';
 import './premium.css';
 
 const PAGE_SIZE = 30;
@@ -299,6 +300,16 @@ export default function App() {
   const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const refreshDebounceRef = useRef(null);
+
+  // Back button handling — prevents hardware back from exiting the site
+  const accountBack = useBackButton(showAccountPage, () => { setShowAccountPage(false); setNav('Home'); });
+  const savedBack = useBackButton(showSavedPage, () => { setShowSavedPage(false); setNav('Home'); });
+  const shopBack = useBackButton(showMyShop, () => { setShowMyShop(false); setNav('Home'); });
+  const searchBack = useBackButton(showSearchPage, () => { setShowSearchPage(false); });
+  const notifPrefsBack = useBackButton(showNotificationPrefs, () => { setShowNotificationPrefs(false); setShowAccountPage(true); });
+  const privacyBack = useBackButton(showPrivacy, () => { setShowPrivacy(false); setShowAccountPage(true); });
+  const adminBack = useBackButton(showAdmin, () => { setShowAdmin(false); setNav('Home'); });
+  const listingBack = useBackButton(Boolean(selectedListing), () => setSelectedListing(null));
 
   // Persist invite code from URL
   useEffect(() => {
@@ -1371,10 +1382,10 @@ export default function App() {
 
           <AnimatePresence>
             {showAccountPage && Boolean(session) && (
-              <PageTransition key="account-page" onBack={() => { setShowAccountPage(false); setNav('Home'); }}>
+              <PageTransition key="account-page" onBack={accountBack.close}>
                 <AccountPage
                   session={session}
-                  onBack={() => { setShowAccountPage(false); setNav('Home'); }}
+                  onBack={accountBack.close}
                   onOpenSettings={() => setShowSettings(true)}
                   onOpenNotifications={() => setShowNotificationPrefs(true)}
                   onOpenPrivacy={() => setShowPrivacy(true)}
@@ -1388,10 +1399,10 @@ export default function App() {
 
           <AnimatePresence>
             {showNotificationPrefs && Boolean(session) && (
-              <PageTransition key="notif-prefs" onBack={() => { setShowNotificationPrefs(false); setShowAccountPage(true); }}>
+              <PageTransition key="notif-prefs" onBack={notifPrefsBack.close}>
                 <NotificationPreferences
                   session={session}
-                  onBack={() => { setShowNotificationPrefs(false); setShowAccountPage(true); }}
+                  onBack={notifPrefsBack.close}
                   onToast={ping}
                 />
               </PageTransition>
@@ -1400,14 +1411,14 @@ export default function App() {
 
           <AnimatePresence>
             {showPrivacy && Boolean(session) && (
-              <PageTransition key="privacy" onBack={() => { setShowPrivacy(false); setShowAccountPage(true); }}>
+              <PageTransition key="privacy" onBack={privacyBack.close}>
                 <PrivacySecurity
                   session={session}
-                  onBack={() => { setShowPrivacy(false); setShowAccountPage(true); }}
+                  onBack={privacyBack.close}
                   onSignOut={() => {
-                    setShowPrivacy(false);
                     setShowAccountPage(false);
                     setNav('Home');
+                    privacyBack.close();
                   }}
                   onToast={ping}
                 />
@@ -1417,11 +1428,14 @@ export default function App() {
 
           <AnimatePresence>
             {showSavedPage && (
-              <PageTransition key="saved-page" onBack={() => { setShowSavedPage(false); setNav('Home'); }}>
+              <PageTransition key="saved-page" onBack={savedBack.close}>
                 <SavedItemsPage
                   session={session}
-                  onBack={() => { setShowSavedPage(false); setNav('Home'); }}
-                  onOpenListing={item => { setShowSavedPage(false); setSelectedListing(item); }}
+                  onBack={savedBack.close}
+                  onOpenListing={item => {
+                    savedBack.close();
+                    setTimeout(() => setSelectedListing(item), 0);
+                  }}
                   onToast={ping}
                 />
               </PageTransition>
@@ -1430,11 +1444,15 @@ export default function App() {
 
           <AnimatePresence>
             {showMyShop && (
-              <PageTransition key="my-shop" onBack={() => { setShowMyShop(false); setNav('Home'); }}>
+              <PageTransition key="my-shop" onBack={shopBack.close}>
                 <MyShop
                   session={session}
-                  onBack={() => { setShowMyShop(false); setNav('Home'); }}
-                  onPostAnother={() => { setShowMyShop(false); setShowPost(true); }}
+                  onBack={shopBack.close}
+                  onPostAnother={() => {
+                    shopBack.close();
+                    setTimeout(() => setShowPost(true), 0);
+                  }}
+                  onToast={ping}
                 />
               </PageTransition>
             )}
@@ -1442,24 +1460,24 @@ export default function App() {
 
           <AnimatePresence>
             {showAdmin && (
-              <PageTransition key="admin-dashboard" onBack={() => { setShowAdmin(false); setNav('Home'); }}>
-                <AdminDashboard session={session} onBack={() => { setShowAdmin(false); setNav('Home'); }} />
+              <PageTransition key="admin-dashboard" onBack={adminBack.close}>
+                <AdminDashboard session={session} onBack={adminBack.close} />
               </PageTransition>
             )}
           </AnimatePresence>
 
           <AnimatePresence>
             {showSearchPage && (
-              <PageTransition key="search-page" onBack={() => setShowSearchPage(false)}>
+              <PageTransition key="search-page" onBack={searchBack.close}>
                 <SearchPage
                   items={items}
                   saved={saved}
                   onSave={save}
                   onOpenListing={(item) => {
-                    setShowSearchPage(false);
-                    setSelectedListing(item);
+                    searchBack.close();
+                    setTimeout(() => setSelectedListing(item), 0);
                   }}
-                  onBack={() => setShowSearchPage(false)}
+                  onBack={searchBack.close}
                 />
               </PageTransition>
             )}
@@ -1467,7 +1485,7 @@ export default function App() {
 
           <ListingDetails
             listing={selectedListing}
-            onClose={() => setSelectedListing(null)}
+            onClose={listingBack.close}
             onToast={ping}
             onRequireAuth={handleRequireAuth}
             replayToken={contactReplayToken}

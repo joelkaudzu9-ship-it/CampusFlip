@@ -83,13 +83,7 @@ export default function SearchPage({
   }
 
   function handleBack() {
-    if (query) {
-      setQuery('');
-      setSubmitted('');
-      inputRef.current?.focus();
-    } else {
-      onBack?.();
-    }
+    onBack?.();
   }
 
   const showRecent = !query.trim() && recent.length > 0;

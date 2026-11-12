@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import EmptyState from './EmptyState';
 
 const money = n => `MK ${Number(n || 0).toLocaleString('en-US')}`;
-const springPhysics = { type: "spring", stiffness: 300, damping: 28, mass: 0.8 };
+const springPhysics = { type: 'spring', stiffness: 300, damping: 28, mass: 0.8 };
 
 function SavedItemsPage({ session, onBack, onOpenListing, onToast }) {
   const [items, setItems] = useState([]);
