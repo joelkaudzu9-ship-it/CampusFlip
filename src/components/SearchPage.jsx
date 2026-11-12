@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, X, ArrowLeft, Clock3, TrendingUp, MapPin,
+  Search, X, ArrowLeft, ArrowRight, Clock3, TrendingUp, MapPin,
   ShoppingBasket, Heart, ShieldCheck, ShoppingBag, Sparkles,
 } from 'lucide-react';
 import {
