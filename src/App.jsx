@@ -18,6 +18,7 @@ import NotificationPreferences from './components/NotificationPreferences';
 import PrivacySecurity from './components/PrivacySecurity';
 import SearchPage from './components/SearchPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import InstallPrompt from './components/InstallPrompt';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -1342,6 +1343,8 @@ export default function App() {
           </nav>
 
           <ToastViewport toast={toast} onDismiss={dismissToast} />
+
+          <InstallPrompt />
 
           <AnimatedModal open={showAuth} onClose={() => setShowAuth(false)} className="cf-auth-modal">
             <div className="cf-auth-modal-heading">
