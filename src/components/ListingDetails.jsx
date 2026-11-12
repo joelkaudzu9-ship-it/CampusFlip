@@ -35,7 +35,20 @@ const reportReasons = [
   'Other'
 ];
 
-export default function ListingDetails({ listing, onClose, onToast, onRequireAuth, replayToken, replyId }) {
+const quickReplyTexts = {
+  available: 'Is this still available?',
+  negotiate: 'Can we discuss the price?',
+  meet: 'When and where can we meet?',
+};
+
+export default function ListingDetails({
+  listing,
+  onClose,
+  onToast,
+  onRequireAuth,
+  replayToken,
+  replyId,
+}) {
   const [details, setDetails] = useState(null);
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +72,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
   const [showLightbox, setShowLightbox] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
-  // Track whether the last interaction was a drag, so a swipe doesn't also open the lightbox.
   const draggedRef = useRef(false);
 
   const listingId = listing?.id;
@@ -263,13 +275,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
       const phone = whatsappNumber(data);
       if (!phone || phone.length < 10) throw new Error('The seller has not provided a valid WhatsApp number.');
 
-      // If the user picked a quick reply from the contact modal, use it
-      const quickReplyTexts = {
-        available: 'Is this still available?',
-        negotiate: 'Can we discuss the price?',
-        meet: 'When and where can we meet?',
-      };
-
       const replyText = replyId && quickReplyTexts[replyId];
 
       let messageBody;
@@ -282,8 +287,8 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
       }
 
       const message = encodeURIComponent(messageBody);
-
       const url = `https://wa.me/${phone}?text=${message}`;
+
       if (newTab) newTab.location.href = url;
       else window.location.href = url;
     } catch (err) {
@@ -340,7 +345,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
     }
   }, []);
 
-  // ── Swipe-down-to-dismiss (outer sheet only) ─────────────────────────────
   function handleDragEnd(_event, info) {
     const scrollTop = scrollRef.current?.scrollTop ?? 0;
     if (scrollTop <= 0 && (info.offset.y > 120 || info.velocity.y > 500)) {
@@ -455,9 +459,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
             </div>
           ) : details && (
             <>
-              {/* ═══════════════════════════════════════════════════
-                  HERO — live drag gallery + floating price pill + share
-                  ═══════════════════════════════════════════════════ */}
+              {/* HERO — live drag gallery + floating price pill + share */}
               <div
                 style={{
                   position: 'relative',
@@ -478,7 +480,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                       onLoad={() => setImageLoaded(true)}
                       onError={() => { setImageLoaded(true); setImageError(true); }}
                       onClick={() => {
-                        // Ignore the click that follows a drag gesture.
                         if (draggedRef.current) { draggedRef.current = false; return; }
                         setShowLightbox(true);
                       }}
@@ -497,8 +498,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                         } else if (info.offset.x > threshold) {
                           goToPhoto((photoIndex + photos.length - 1) % photos.length);
                         }
-                        // Slight delay so the click event that fires after the drag
-                        // is suppressed by draggedRef check.
                         setTimeout(() => { draggedRef.current = false; }, 0);
                       }}
                       style={{
@@ -539,7 +538,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   />
                 )}
 
-                {/* Bottom gradient scrim */}
                 <div
                   style={{
                     position: 'absolute',
@@ -550,7 +548,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   }}
                 />
 
-                {/* Drag handle pill */}
                 <div
                   style={{
                     position: 'absolute',
@@ -568,7 +565,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   }}
                 />
 
-                {/* Share button */}
                 <div
                   style={{
                     position: 'absolute',
@@ -590,7 +586,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </motion.button>
                 </div>
 
-                {/* Flash deal badge */}
                 {flashDeal && (
                   <motion.div
                     initial={{ opacity: 0, y: -8, scale: 0.9 }}
@@ -619,7 +614,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </motion.div>
                 )}
 
-                {/* Bottom hero content */}
                 <div
                   style={{
                     position: 'absolute',
@@ -723,7 +717,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </div>
                 </div>
 
-                {/* Photo dots — centered pill above the bottom labels */}
                 {photos.length > 1 && (
                   <div
                     style={{
@@ -763,7 +756,6 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                   </div>
                 )}
 
-                {/* Prev/next arrows (desktop nicety — still useful) */}
                 {photos.length > 1 && (
                   <>
                     <motion.button
@@ -792,9 +784,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 )}
               </div>
 
-              {/* ═══════════════════════════════════════════════════
-                  TITLE STRIP
-                  ═══════════════════════════════════════════════════ */}
+              {/* TITLE STRIP */}
               <div style={{ padding: '20px 16px 0' }}>
                 <motion.h1
                   initial={{ opacity: 0, y: 6 }}
@@ -905,9 +895,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 </motion.div>
               </div>
 
-              {/* ═══════════════════════════════════════════════════
-                  DESCRIPTION CARD
-                  ═══════════════════════════════════════════════════ */}
+              {/* DESCRIPTION CARD */}
               {details.description && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -968,9 +956,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 </motion.div>
               )}
 
-              {/* ═══════════════════════════════════════════════════
-                  MEETING SPOT
-                  ═══════════════════════════════════════════════════ */}
+              {/* MEETING SPOT */}
               <motion.button
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1040,9 +1026,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 <Navigation size={18} color="#2563EB" />
               </motion.button>
 
-              {/* ═══════════════════════════════════════════════════
-                  SAFETY NOTE
-                  ═══════════════════════════════════════════════════ */}
+              {/* SAFETY NOTE */}
               <div
                 style={{
                   margin: '12px 16px 0',
@@ -1064,9 +1048,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 </span>
               </div>
 
-              {/* ═══════════════════════════════════════════════════
-                  REPORT
-                  ═══════════════════════════════════════════════════ */}
+              {/* REPORT */}
               <div
                 style={{
                   padding: '20px 16px calc(20px + env(safe-area-inset-bottom))',
@@ -1094,9 +1076,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
                 </button>
               </div>
 
-              {/* ═══════════════════════════════════════════════════
-                  STICKY ACTION BAR — WhatsApp + Save
-                  ═══════════════════════════════════════════════════ */}
+              {/* STICKY ACTION BAR */}
               <div
                 style={{
                   position: 'sticky',
@@ -1178,9 +1158,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
             </>
           )}
 
-          {/* ═══════════════════════════════════════════════════
-              LIGHTBOX — swipeable, cross-faded
-              ═══════════════════════════════════════════════════ */}
+          {/* LIGHTBOX */}
           {typeof document !== 'undefined' && createPortal(
             <AnimatePresence>
               {showLightbox && currentPhoto && (
@@ -1290,9 +1268,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
             document.body
           )}
 
-          {/* ═══════════════════════════════════════════════════
-              REPORT MODAL
-              ═══════════════════════════════════════════════════ */}
+          {/* REPORT MODAL */}
           <AnimatePresence>
             {showReport && (
               <motion.div
