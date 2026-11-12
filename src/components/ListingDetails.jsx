@@ -35,7 +35,7 @@ const reportReasons = [
   'Other'
 ];
 
-export default function ListingDetails({ listing, onClose, onToast, onRequireAuth, replayToken }) {
+export default function ListingDetails({ listing, onClose, onToast, onRequireAuth, replayToken, replyId }) {
   const [details, setDetails] = useState(null);
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -263,23 +263,25 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
       const phone = whatsappNumber(data);
       if (!phone || phone.length < 10) throw new Error('The seller has not provided a valid WhatsApp number.');
 
+      // If the user picked a quick reply from the contact modal, use it
       const quickReplyTexts = {
         available: 'Is this still available?',
         negotiate: 'Can we discuss the price?',
         meet: 'When and where can we meet?',
       };
 
-      const replyText = contactIntent?.replyId
-        ? quickReplyTexts[contactIntent.replyId]
-        : null;
+      const replyText = replyId && quickReplyTexts[replyId];
 
-      const message = encodeURIComponent(
-        replyText
-          ? `Hi! I found your listing "${details.title}" on CampusFlip. ${replyText}`
-          : flashDeal
-          ? `Hello! I found your Flash Deal "${details.title}" on CampusFlip, advertised at ${money(flashDeal.deal_price)} instead of ${money(flashDeal.original_price)}. Is it still available at this price?`
-          : `Hello! I found your listing "${details.title}" on CampusFlip. Is it still available?`
-      );
+      let messageBody;
+      if (replyText) {
+        messageBody = `Hi! I found your listing "${details.title}" on CampusFlip. ${replyText}`;
+      } else if (flashDeal) {
+        messageBody = `Hello! I found your Flash Deal "${details.title}" on CampusFlip, advertised at ${money(flashDeal.deal_price)} instead of ${money(flashDeal.original_price)}. Is it still available at this price?`;
+      } else {
+        messageBody = `Hello! I found your listing "${details.title}" on CampusFlip. Is it still available?`;
+      }
+
+      const message = encodeURIComponent(messageBody);
 
       const url = `https://wa.me/${phone}?text=${message}`;
       if (newTab) newTab.location.href = url;
@@ -290,7 +292,7 @@ export default function ListingDetails({ listing, onClose, onToast, onRequireAut
     } finally {
       setContacting(false);
     }
-  }, [details, contacting, seller, flashDeal, onRequireAuth, onToast]);
+  }, [details, contacting, seller, flashDeal, onRequireAuth, onToast, replyId]);
 
   useEffect(() => {
     if (replayToken && replayToken !== lastReplayTokenRef.current && details) {

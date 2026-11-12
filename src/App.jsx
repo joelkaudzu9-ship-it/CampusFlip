@@ -330,6 +330,7 @@ export default function App() {
   const [contactIntent, setContactIntent] = useState(null);
   const pendingContact = useRef(null);
   const [contactReplayToken, setContactReplayToken] = useState(0);
+  const [contactReplyId, setContactReplyId] = useState(null);
 
   const [items, setItems] = useState([]);
   const [hasMore, setHasMore] = useState(false);
@@ -680,7 +681,7 @@ export default function App() {
   function handleRequireAuth(intent) { setContactIntent(intent); }
 
   function handleProceedToAuth(replyId) {
-    pendingContact.current = { ...contactIntent, replyId };
+    pendingContact.current = { ...contactIntent, replyId: replyId || null };
     setContactIntent(null);
     setTimeout(() => setShowAuth(true), 50);
   }
@@ -1415,6 +1416,7 @@ export default function App() {
 
                 const pending = pendingContact.current;
                 if (pending) {
+                  setContactReplyId(pending.replyId || null);
                   setTimeout(() => {
                     setContactReplayToken(t => t + 1);
                     pendingContact.current = null;
@@ -1533,6 +1535,7 @@ export default function App() {
             onToast={ping}
             onRequireAuth={handleRequireAuth}
             replayToken={contactReplayToken}
+            replyId={contactReplyId}
           />
 
           <AnimatePresence>
