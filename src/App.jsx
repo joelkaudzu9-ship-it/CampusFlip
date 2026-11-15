@@ -53,6 +53,14 @@ const categoryMatches = {
     'beauty & personal care', 'sports & fitness', 'other']
 };
 
+// Hero tiles map to real category names used by the filter
+const HERO_TILES = [
+  { key: 'Books', label: 'Books', emoji: '📚', filterCat: 'Books' },
+  { key: 'Electronics', label: 'Tech', emoji: '💻', filterCat: 'Electronics' },
+  { key: 'Clothes', label: 'Gear', emoji: '👕', filterCat: 'Clothes' },
+  { key: 'Food', label: 'Food', emoji: '🍲', filterCat: 'Food' },
+];
+
 const money = n => `MK ${Number(n || 0).toLocaleString('en-US')}`;
 
 function relation(value) {
@@ -94,7 +102,7 @@ const SORT_LABELS = {
   price_desc: 'Price ↓'
 };
 
-/* ── Product card — no self-stagger; parent wrapper handles enter animation ── */
+/* ── Product card ── */
 function ProductCard({ item, isSaved, onSave, onOpen, flashDeal }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -272,7 +280,6 @@ export default function App() {
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
-  // ── Password reset page ──────────────────────────────────────────────────
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -283,7 +290,6 @@ export default function App() {
     return match ? match[1] : null;
   });
 
-  // On mount, if URL has ?listing=<id>, open that listing
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -342,7 +348,6 @@ export default function App() {
 
   const refreshDebounceRef = useRef(null);
 
-  // Back button handling — prevents hardware back from exiting the site
   const accountBack = useBackButton(showAccountPage, () => { setShowAccountPage(false); setNav('Home'); });
   const settingsBack = useBackButton(showSettings, () => { setShowSettings(false); });
   const savedBack = useBackButton(showSavedPage, () => { setShowSavedPage(false); setNav('Home'); });
@@ -353,20 +358,17 @@ export default function App() {
   const adminBack = useBackButton(showAdmin, () => { setShowAdmin(false); setNav('Home'); });
   const listingBack = useBackButton(Boolean(selectedListing), () => setSelectedListing(null));
 
-  // Persist invite code from URL
   useEffect(() => {
     const path = window.location.pathname;
     const match = path.match(/^\/invite\/([a-zA-Z0-9]+)/);
     if (match) localStorage.setItem('campusflip_invite_code', match[1]);
   }, []);
 
-  // Countdown tick for flash deals
   useEffect(() => {
     const timer = setInterval(() => setDealNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-advance carousel
   useEffect(() => {
     if (flashDeals.length < 2) return;
     if (dealHovered || dealFocused) return;
@@ -377,7 +379,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [flashDeals.length, deal, dealHovered, dealFocused, dealCycleKey]);
 
-  // Preload first 8 listing images before dropping the splash
   useEffect(() => {
     if (loading || items.length === 0) {
       if (!loading) setImagesLoaded(true);
@@ -412,7 +413,6 @@ export default function App() {
     }
   }, [loading, imagesLoaded]);
 
-  // Auth — with PASSWORD_RECOVERY handling
   useEffect(() => {
     if (!supabase) return;
 
@@ -420,20 +420,16 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // User clicked the reset link in their email.
-        // Show the reset page so they can set a new password.
         setSession(newSession);
         setShowResetPassword(true);
         return;
       }
-
       setSession(newSession);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Admin check
   useEffect(() => {
     async function checkAdmin() {
       if (!session?.user?.id || !supabase) { setIsAdmin(false); return; }
@@ -443,7 +439,6 @@ export default function App() {
     checkAdmin();
   }, [session?.user?.id]);
 
-  // Profile avatar
   useEffect(() => {
     let mounted = true;
     async function loadProfileAvatar() {
@@ -455,7 +450,6 @@ export default function App() {
     return () => { mounted = false; };
   }, [session?.user?.id, profileRefresh]);
 
-  // Saved listings
   useEffect(() => {
     let mounted = true;
     async function loadSavedListings() {
@@ -467,7 +461,6 @@ export default function App() {
     return () => { mounted = false; };
   }, [session?.user?.id]);
 
-  // Fetch one page of listings
   const fetchListingsPage = useCallback(async (offset, currentTab) => {
     let request = supabase
       .from('listings')
@@ -498,7 +491,6 @@ export default function App() {
     return listings.map(row => mapListing(row, sellerProfiles[row.seller_id]));
   }, []);
 
-  // Initial load / refresh
   useEffect(() => {
     let cancelled = false;
 
@@ -531,7 +523,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, [tab, refreshListings, fetchListingsPage]);
 
-  // Load more
   async function loadMore() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
@@ -547,7 +538,6 @@ export default function App() {
     }
   }
 
-  // Flash deals
   useEffect(() => {
     let cancelled = false;
 
@@ -626,7 +616,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, [refreshListings]);
 
-  // Refetch on deal expiry
   useEffect(() => {
     if (!flashDeals.length) return;
     const nextExpiry = Math.min(...flashDeals.map(item => new Date(item.endsAt).getTime()));
@@ -636,7 +625,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [flashDeals, dealNow]);
 
-  // Realtime
   const scheduleRefresh = useCallback(() => {
     if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     refreshDebounceRef.current = setTimeout(() => {
@@ -762,6 +750,32 @@ export default function App() {
     return filtered;
   }, [items, cat, verifiedOnly, sort]);
 
+  // Hero tile counts — computed from real items
+  const heroCounts = useMemo(() => {
+    const counts = { Books: 0, Electronics: 0, Clothes: 0, Food: 0 };
+    for (const item of items) {
+      const catLower = item.category.toLowerCase();
+      for (const [key, matches] of Object.entries(categoryMatches)) {
+        if (key === 'More') continue;
+        if (matches.includes(catLower) && counts[key] !== undefined) {
+          counts[key]++;
+        }
+      }
+    }
+    return counts;
+  }, [items]);
+
+  // Live seller count — unique sellers in current item set
+  const sellerCount = useMemo(() => {
+    const seen = new Set();
+    for (const item of items) {
+      if (item.sellerId) seen.add(item.sellerId);
+    }
+    return seen.size;
+  }, [items]);
+
+  const totalListings = items.length;
+
   const activeDeal = flashDeals.length ? flashDeals[deal % flashDeals.length] : null;
 
   const dealTimeLeft = activeDeal
@@ -791,14 +805,12 @@ export default function App() {
     transition: 'background 0.2s, color 0.2s, border-color 0.2s',
   });
 
-  // ── Password reset page takes over the entire viewport ──────────────────
   if (showResetPassword) {
     return (
       <ResetPasswordPage
         onToast={ping}
         onComplete={() => {
           setShowResetPassword(false);
-          // Clear the hash so refreshing doesn't re-trigger recovery
           window.history.replaceState(null, '', window.location.pathname);
         }}
       />
@@ -895,6 +907,160 @@ export default function App() {
               onToast={ping}
             />
           </AnimatedModal>
+
+          {/* ═══════════════════════════════════════════════════
+              HERO — value prop + category tiles + live stats
+              ═══════════════════════════════════════════════════ */}
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springPhysics, delay: 0.05 }}
+            style={{
+              margin: '16px 20px 0',
+              padding: '22px 20px 20px',
+              borderRadius: 24,
+              background: 'linear-gradient(150deg, #101C3A 0%, #1E3A8A 100%)',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Ambient glow */}
+            <div
+              style={{
+                position: 'absolute',
+                top: -80,
+                right: -80,
+                width: 240,
+                height: 240,
+                background: 'radial-gradient(circle, rgba(245,166,35,.25) 0%, transparent 60%)',
+                filter: 'blur(30px)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: -100,
+                left: -60,
+                width: 260,
+                height: 260,
+                background: 'radial-gradient(circle, rgba(37,99,235,.35) 0%, transparent 65%)',
+                filter: 'blur(40px)',
+                pointerEvents: 'none',
+              }}
+            />
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: 2,
+                color: '#F5A623',
+                display: 'block',
+                marginBottom: 6,
+              }}>
+                THE KUHeS MARKETPLACE
+              </span>
+
+              <h1 style={{
+                margin: 0,
+                fontSize: 26,
+                fontWeight: 850,
+                letterSpacing: -0.8,
+                lineHeight: 1.15,
+                color: 'white',
+              }}>
+                Buy. Sell. Meet.
+              </h1>
+
+              <p style={{
+                margin: '8px 0 18px',
+                fontSize: 13,
+                lineHeight: 1.55,
+                color: 'rgba(255,255,255,.7)',
+                maxWidth: 320,
+              }}>
+                Textbooks, electronics, lab coats — from students a few years ahead of you.
+              </p>
+
+              {/* Category tiles */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 8,
+                marginBottom: 16,
+              }}>
+                {HERO_TILES.map(tile => {
+                  const count = heroCounts[tile.key] || 0;
+                  const active = cat === tile.filterCat;
+                  return (
+                    <motion.button
+                      key={tile.key}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setCat(tile.filterCat);
+                        // Smooth scroll down to the grid
+                        document.querySelector('.subhead')?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '12px 14px',
+                        borderRadius: 14,
+                        border: active
+                          ? '1.5px solid #F5A623'
+                          : '1px solid rgba(255,255,255,.1)',
+                        background: active
+                          ? 'rgba(245,166,35,.15)'
+                          : 'rgba(255,255,255,.06)',
+                        color: 'white',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.2s, border-color 0.2s',
+                      }}
+                    >
+                      <div style={{ fontSize: 22, lineHeight: 1 }}>{tile.emoji}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2 }}>
+                          {tile.label}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', marginTop: 2 }}>
+                          {count} {count === 1 ? 'listing' : 'listings'}
+                        </div>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Live stats */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 11,
+                color: 'rgba(255,255,255,.55)',
+                fontWeight: 600,
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: '#22C55E',
+                  boxShadow: '0 0 0 0 rgba(34,197,94,.6)',
+                  animation: 'cf-pulse 2s infinite',
+                  flexShrink: 0,
+                }} />
+                <span>
+                  {totalListings} active listing{totalListings === 1 ? '' : 's'}
+                  {sellerCount > 0 && ` · ${sellerCount} seller${sellerCount === 1 ? '' : 's'}`}
+                </span>
+              </div>
+            </div>
+          </motion.section>
 
           <div className="cf-search-area" style={{ margin: '12px 20px 0' }}>
             <motion.button

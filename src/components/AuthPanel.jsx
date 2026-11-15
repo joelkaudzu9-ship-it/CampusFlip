@@ -47,6 +47,9 @@ export default function AuthPanel({ onAuthenticated, onToast }) {
       }
 
       if (mode === 'signup') {
+        if (!email.trim().toLowerCase().endsWith('@kuhes.ac.mw')) {
+          throw new Error('CampusFlip is only available to KUHeS students. Please use your @kuhes.ac.mw email.');
+        }
         if (name.trim().length < 2) throw new Error('Please enter your full name.');
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -139,7 +142,7 @@ export default function AuthPanel({ onAuthenticated, onToast }) {
 
         <AuthField
           icon={Mail}
-          label="Email address"
+          label={mode === 'signup' ? 'KUHeS email address' : 'Email address'}
           id="auth-email"
           name="email"
           type="email"
