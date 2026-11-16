@@ -53,13 +53,6 @@ const categoryMatches = {
     'beauty & personal care', 'sports & fitness', 'other']
 };
 
-const HERO_TILES = [
-  { key: 'Books', label: 'Books', emoji: '📚', filterCat: 'Books' },
-  { key: 'Electronics', label: 'Tech', emoji: '💻', filterCat: 'Electronics' },
-  { key: 'Clothes', label: 'Gear', emoji: '👕', filterCat: 'Clothes' },
-  { key: 'Food', label: 'Food', emoji: '🍲', filterCat: 'Food' },
-];
-
 const money = n => `MK ${Number(n || 0).toLocaleString('en-US')}`;
 
 function relation(value) {
@@ -101,6 +94,7 @@ const SORT_LABELS = {
   price_desc: 'Price ↓'
 };
 
+/* ── Product card ── */
 function ProductCard({ item, isSaved, onSave, onOpen, flashDeal }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -345,7 +339,6 @@ export default function App() {
   const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const refreshDebounceRef = useRef(null);
-  const lastHandledExpiryRef = useRef(0);
 
   const accountBack = useBackButton(showAccountPage, () => { setShowAccountPage(false); setNav('Home'); });
   const settingsBack = useBackButton(showSettings, () => { setShowSettings(false); });
@@ -615,60 +608,32 @@ export default function App() {
     return () => { cancelled = true; };
   }, [refreshListings]);
 
-  // FIX 2 — Flash deal expiry: only fire once per expired deal, not every second
   useEffect(() => {
     if (!flashDeals.length) return;
-
-    const futureExpiries = flashDeals
-      .map(item => new Date(item.endsAt).getTime())
-      .filter(t => t > dealNow);
-
-    if (futureExpiries.length === 0) {
-      const oldestExpiry = Math.min(...flashDeals.map(item => new Date(item.endsAt).getTime()));
-      if (lastHandledExpiryRef.current !== oldestExpiry) {
-        lastHandledExpiryRef.current = oldestExpiry;
-        setRefreshListings(v => v + 1);
-      }
-      return;
-    }
-
-    const nextExpiry = Math.min(...futureExpiries);
+    const nextExpiry = Math.min(...flashDeals.map(item => new Date(item.endsAt).getTime()));
     const delay = nextExpiry - dealNow;
+    if (delay <= 0) { setRefreshListings(v => v + 1); return; }
     const timer = setTimeout(() => setRefreshListings(v => v + 1), delay + 1000);
     return () => clearTimeout(timer);
   }, [flashDeals, dealNow]);
 
-  // FIX 1 — scheduleRefresh bails while a full-page view is open
   const scheduleRefresh = useCallback(() => {
-    if (showMyShop || showSavedPage || showAccountPage || showAdmin ||
-        showSearchPage || showNotificationPrefs || showPrivacy) {
-      return;
-    }
     if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     refreshDebounceRef.current = setTimeout(() => {
       setRefreshListings(v => v + 1);
       refreshDebounceRef.current = null;
     }, 400);
-  }, [
-    showMyShop, showSavedPage, showAccountPage, showAdmin,
-    showSearchPage, showNotificationPrefs, showPrivacy
-  ]);
-
-  // FIX 3 — Stable ref so the realtime channel doesn't re-subscribe
-  const scheduleRefreshRef = useRef(null);
-  useEffect(() => {
-    scheduleRefreshRef.current = scheduleRefresh;
-  }, [scheduleRefresh]);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
       .channel('public:marketplace-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => scheduleRefreshRef.current?.())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_deals' }, () => scheduleRefreshRef.current?.())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => scheduleRefresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_deals' }, () => scheduleRefresh())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        if (payload.new?.is_verified !== payload.old?.is_verified) scheduleRefreshRef.current?.();
+        if (payload.new?.is_verified !== payload.old?.is_verified) scheduleRefresh();
       })
       .subscribe();
 
@@ -676,7 +641,7 @@ export default function App() {
       supabase.removeChannel(channel);
       if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
-  }, []);
+  }, [scheduleRefresh]);
 
   function ping(message, type = 'success') { setToast({ id: Date.now(), message, type }); }
   function dismissToast() { setToast(null); }
@@ -777,20 +742,7 @@ export default function App() {
     return filtered;
   }, [items, cat, verifiedOnly, sort]);
 
-  const heroCounts = useMemo(() => {
-    const counts = { Books: 0, Electronics: 0, Clothes: 0, Food: 0 };
-    for (const item of items) {
-      const catLower = item.category.toLowerCase();
-      for (const [key, matches] of Object.entries(categoryMatches)) {
-        if (key === 'More') continue;
-        if (matches.includes(catLower) && counts[key] !== undefined) {
-          counts[key]++;
-        }
-      }
-    }
-    return counts;
-  }, [items]);
-
+  // Live seller count — unique sellers in current item set
   const sellerCount = useMemo(() => {
     const seen = new Set();
     for (const item of items) {
@@ -933,149 +885,69 @@ export default function App() {
             />
           </AnimatedModal>
 
+          {/* HERO — bold marketplace message with a visual campus product collage */}
           <motion.section
-            initial={{ opacity: 0, y: 8 }}
+            className="cf-hero"
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...springPhysics, delay: 0.05 }}
-            style={{
-              margin: '16px 20px 0',
-              padding: '22px 20px 20px',
-              borderRadius: 24,
-              background: 'linear-gradient(150deg, #101C3A 0%, #1E3A8A 100%)',
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: -80,
-                right: -80,
-                width: 240,
-                height: 240,
-                background: 'radial-gradient(circle, rgba(245,166,35,.25) 0%, transparent 60%)',
-                filter: 'blur(30px)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                bottom: -100,
-                left: -60,
-                width: 260,
-                height: 260,
-                background: 'radial-gradient(circle, rgba(37,99,235,.35) 0%, transparent 65%)',
-                filter: 'blur(40px)',
-                pointerEvents: 'none',
-              }}
-            />
+            <div className="cf-hero-glow cf-hero-glow-one" />
+            <div className="cf-hero-glow cf-hero-glow-two" />
 
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <span style={{
-                fontSize: 10,
-                fontWeight: 900,
-                letterSpacing: 2,
-                color: '#F5A623',
-                display: 'block',
-                marginBottom: 6,
-              }}>
-                THE KUHeS MARKETPLACE
-              </span>
-
-              <h1 style={{
-                margin: 0,
-                fontSize: 26,
-                fontWeight: 850,
-                letterSpacing: -0.8,
-                lineHeight: 1.15,
-                color: 'white',
-              }}>
-                Buy. Sell. Meet.
+            <div className="cf-hero-copy">
+              <span className="cf-hero-eyebrow">THE KUHeS MARKETPLACE</span>
+              <h1>
+                Everything campus.
+                <span>One marketplace.</span>
               </h1>
-
-              <p style={{
-                margin: '8px 0 18px',
-                fontSize: 13,
-                lineHeight: 1.55,
-                color: 'rgba(255,255,255,.7)',
-                maxWidth: 320,
-              }}>
-                Textbooks, electronics, lab coats — from students a few years ahead of you.
+              <p>
+                Buy what you need. Sell what you don't.
+                <br className="cf-hero-desktop-break" /> Connect with your campus community.
               </p>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 8,
-                marginBottom: 16,
-              }}>
-                {HERO_TILES.map(tile => {
-                  const count = heroCounts[tile.key] || 0;
-                  const active = cat === tile.filterCat;
-                  return (
-                    <motion.button
-                      key={tile.key}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        setCat(tile.filterCat);
-                        document.querySelector('.subhead')?.scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'start',
-                        });
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '12px 14px',
-                        borderRadius: 14,
-                        border: active
-                          ? '1.5px solid #F5A623'
-                          : '1px solid rgba(255,255,255,.1)',
-                        background: active
-                          ? 'rgba(245,166,35,.15)'
-                          : 'rgba(255,255,255,.06)',
-                        color: 'white',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'background 0.2s, border-color 0.2s',
-                      }}
-                    >
-                      <div style={{ fontSize: 22, lineHeight: 1 }}>{tile.emoji}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2 }}>
-                          {tile.label}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', marginTop: 2 }}>
-                          {count} {count === 1 ? 'listing' : 'listings'}
-                        </div>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 11,
-                color: 'rgba(255,255,255,.55)',
-                fontWeight: 600,
-              }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: '#22C55E',
-                  boxShadow: '0 0 0 0 rgba(34,197,94,.6)',
-                  animation: 'cf-pulse 2s infinite',
-                  flexShrink: 0,
-                }} />
+              <motion.button
+                type="button"
+                className="cf-hero-cta"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  document.querySelector('.cf-categories')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                  });
+                }}
+              >
+                Explore marketplace <ArrowRight size={18} />
+              </motion.button>
+              <div className="cf-hero-stats">
+                <span className="cf-live-dot" />
                 <span>
                   {totalListings} active listing{totalListings === 1 ? '' : 's'}
                   {sellerCount > 0 && ` · ${sellerCount} seller${sellerCount === 1 ? '' : 's'}`}
                 </span>
+              </div>
+            </div>
+
+            <div className="cf-hero-art" aria-hidden="true">
+              <div className="cf-hero-art-orbit" />
+              <div className="cf-hero-art-spark cf-hero-art-spark-one">✦</div>
+              <div className="cf-hero-art-spark cf-hero-art-spark-two">✳</div>
+              <div className="cf-hero-product cf-hero-product-bag">
+                <span>🎒</span>
+                <small>CAMPUS GEAR</small>
+              </div>
+              <div className="cf-hero-product cf-hero-product-laptop">
+                <span>💻</span>
+              </div>
+              <div className="cf-hero-product cf-hero-product-books">
+                <span>📚</span>
+                <small>STUDY ESSENTIALS</small>
+              </div>
+              <div className="cf-hero-product cf-hero-product-bottle">
+                <span>🧴</span>
+              </div>
+              <div className="cf-hero-art-caption">
+                <span className="cf-hero-caption-icon"><Users size={15} /></span>
+                <span>{totalListings} items from your campus community</span>
               </div>
             </div>
           </motion.section>
@@ -1317,28 +1189,32 @@ export default function App() {
                           exit={{ opacity: 0, x: -20, scale: 0.98 }}
                           transition={springPhysics}
                         >
-                          {activeDeal.image && <img src={activeDeal.image} alt={activeDeal.title} loading="lazy" />}
-                          <div className="shade" />
-                          <div className="dealtext">
+                          <div className="cf-deal-copy">
                             <b className="pill">
-                              <Zap size={13} /> FLASH DEAL · {activeDeal.discountPercent}% OFF
+                              <Zap size={13} /> {activeDeal.discountPercent}% OFF
                             </b>
                             <strong>{activeDeal.title}</strong>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="cf-deal-prices">
                               <b>{money(activeDeal.dealPrice)}</b>
-                              <span style={{ textDecoration: 'line-through', opacity: 0.75, fontSize: 13 }}>
-                                {money(activeDeal.originalPrice)}
-                              </span>
+                              <span>{money(activeDeal.originalPrice)}</span>
                             </div>
-                            <span className="cf-deal-countdown" style={{ fontSize: 12, fontWeight: 700 }}>
-                              <Zap size={13} /> Ends in {dealCountdown}
+                            <span className="cf-deal-countdown">
+                              <Clock3 size={14} /> Ends in {dealCountdown}
                             </span>
                             <motion.button
                               whileTap={{ scale: 0.95 }}
                               onClick={() => setSelectedListing({ ...activeDeal, price: activeDeal.dealPrice, originalPrice: activeDeal.originalPrice, isFlashDeal: true })}
                             >
-                              Grab Deal <ArrowRight />
+                              Grab deal <ArrowRight />
                             </motion.button>
+                          </div>
+                          <div className="cf-deal-visual">
+                            <div className="cf-deal-visual-glow" />
+                            {activeDeal.image ? (
+                              <img src={activeDeal.image} alt={activeDeal.title} loading="lazy" />
+                            ) : (
+                              <div className="cf-deal-image-fallback" aria-hidden="true">⚡</div>
+                            )}
                           </div>
                           {flashDeals.length > 1 && (
                             <div className="arrows">
@@ -1618,94 +1494,108 @@ export default function App() {
             />
           </AnimatedModal>
 
-          {showAccountPage && Boolean(session) && (
-            <PageTransition key="account-page" onBack={accountBack.close}>
-              <AccountPage
-                session={session}
-                onBack={accountBack.close}
-                onOpenSettings={() => setShowSettings(true)}
-                onOpenNotifications={() => setShowNotificationPrefs(true)}
-                onOpenPrivacy={() => setShowPrivacy(true)}
-                onSignOut={handleSignOut}
-                onOpenAdmin={() => setShowAdmin(true)}
-                isAdmin={isAdmin}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showAccountPage && Boolean(session) && (
+              <PageTransition key="account-page" onBack={accountBack.close}>
+                <AccountPage
+                  session={session}
+                  onBack={accountBack.close}
+                  onOpenSettings={() => setShowSettings(true)}
+                  onOpenNotifications={() => setShowNotificationPrefs(true)}
+                  onOpenPrivacy={() => setShowPrivacy(true)}
+                  onSignOut={handleSignOut}
+                  onOpenAdmin={() => setShowAdmin(true)}
+                  isAdmin={isAdmin}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showNotificationPrefs && Boolean(session) && (
-            <PageTransition key="notif-prefs" onBack={notifPrefsBack.close}>
-              <NotificationPreferences
-                session={session}
-                onBack={notifPrefsBack.close}
-                onToast={ping}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showNotificationPrefs && Boolean(session) && (
+              <PageTransition key="notif-prefs" onBack={notifPrefsBack.close}>
+                <NotificationPreferences
+                  session={session}
+                  onBack={notifPrefsBack.close}
+                  onToast={ping}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showPrivacy && Boolean(session) && (
-            <PageTransition key="privacy" onBack={privacyBack.close}>
-              <PrivacySecurity
-                session={session}
-                onBack={privacyBack.close}
-                onSignOut={() => {
-                  setShowAccountPage(false);
-                  setNav('Home');
-                  privacyBack.close();
-                }}
-                onToast={ping}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showPrivacy && Boolean(session) && (
+              <PageTransition key="privacy" onBack={privacyBack.close}>
+                <PrivacySecurity
+                  session={session}
+                  onBack={privacyBack.close}
+                  onSignOut={() => {
+                    setShowAccountPage(false);
+                    setNav('Home');
+                    privacyBack.close();
+                  }}
+                  onToast={ping}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showSavedPage && (
-            <PageTransition key="saved-page" onBack={savedBack.close}>
-              <SavedItemsPage
-                session={session}
-                onBack={savedBack.close}
-                onOpenListing={item => {
-                  savedBack.close();
-                  setTimeout(() => setSelectedListing(item), 0);
-                }}
-                onToast={ping}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showSavedPage && (
+              <PageTransition key="saved-page" onBack={savedBack.close}>
+                <SavedItemsPage
+                  session={session}
+                  onBack={savedBack.close}
+                  onOpenListing={item => {
+                    savedBack.close();
+                    setTimeout(() => setSelectedListing(item), 0);
+                  }}
+                  onToast={ping}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showMyShop && (
-            <PageTransition key="my-shop" onBack={shopBack.close}>
-              <MyShop
-                session={session}
-                onBack={shopBack.close}
-                onPostAnother={() => {
-                  shopBack.close();
-                  setTimeout(() => setShowPost(true), 0);
-                }}
-                onToast={ping}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showMyShop && (
+              <PageTransition key="my-shop" onBack={shopBack.close}>
+                <MyShop
+                  session={session}
+                  onBack={shopBack.close}
+                  onPostAnother={() => {
+                    shopBack.close();
+                    setTimeout(() => setShowPost(true), 0);
+                  }}
+                  onToast={ping}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showAdmin && (
-            <PageTransition key="admin-dashboard" onBack={adminBack.close}>
-              <AdminDashboard session={session} onBack={adminBack.close} />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showAdmin && (
+              <PageTransition key="admin-dashboard" onBack={adminBack.close}>
+                <AdminDashboard session={session} onBack={adminBack.close} />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
-          {showSearchPage && (
-            <PageTransition key="search-page" onBack={searchBack.close}>
-              <SearchPage
-                items={items}
-                saved={saved}
-                onSave={save}
-                onOpenListing={(item) => {
-                  searchBack.close();
-                  setTimeout(() => setSelectedListing(item), 0);
-                }}
-                onBack={searchBack.close}
-              />
-            </PageTransition>
-          )}
+          <AnimatePresence>
+            {showSearchPage && (
+              <PageTransition key="search-page" onBack={searchBack.close}>
+                <SearchPage
+                  items={items}
+                  saved={saved}
+                  onSave={save}
+                  onOpenListing={(item) => {
+                    searchBack.close();
+                    setTimeout(() => setSelectedListing(item), 0);
+                  }}
+                  onBack={searchBack.close}
+                />
+              </PageTransition>
+            )}
+          </AnimatePresence>
 
           <ListingDetails
             listing={selectedListing}
