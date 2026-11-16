@@ -1153,7 +1153,15 @@ export default function App() {
             </motion.button>
           </div>
 
-          <motion.section layout className="cf-flash-section" style={{ position: 'relative', overflow: 'hidden', minHeight: '220px' }}>
+          <motion.section
+            layout
+            className="cf-flash-section"
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              paddingBottom: '16px'
+            }}
+          >
             <AnimatePresence mode="wait">
               {showAllDeals ? (
                 <motion.div
