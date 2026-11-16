@@ -6,6 +6,7 @@ import {
   MapPin, Image as ImageIcon, Zap, Flame, Store,
   MoreHorizontal, Pencil, Trash2, Eye, Share2,
   CreditCard, LoaderCircle, X, ChevronDown, Tag, FileText, ShieldCheck,
+  TrendingUp, Calendar, Package, Clock3,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePaymentStatus } from '../lib/usePaymentStatus';
@@ -29,6 +30,20 @@ const statusLabels = {
 };
 
 function relation(v) { return Array.isArray(v) ? v[0] : v; }
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w ago`;
+}
 
 const spring = { type: 'spring', stiffness: 300, damping: 30 };
 const stagger = {
@@ -67,7 +82,6 @@ const iconButton = {
   display: 'grid', placeItems: 'center', cursor: 'pointer'
 };
 
-/* Modal shell — portaled, centered, body-locked */
 function Modal({ open, onClose, children, maxWidth = 430 }) {
   useBodyLock(open);
 
@@ -137,7 +151,6 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [saleCelebration, setSaleCelebration] = useState(null);
 
-  // Single-slot modal state
   const [activeModal, setActiveModal] = useState(null);
 
   // Boost form state
@@ -172,9 +185,15 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
   const [editError, setEditError] = useState('');
   const [editPhotoKey, setEditPhotoKey] = useState(0);
 
-  const loadListings = useCallback(async () => {
+  // ── Realtime debounce ──
+  const realtimeDebounceRef = useRef(null);
+  const hasLoadedOnce = useRef(false);
+
+  const loadListings = useCallback(async (silent = false) => {
     if (!session?.user?.id) { setListings([]); setLoading(false); return; }
-    setLoading(true);
+
+    // Only show the full-page loader on the first load or explicit refresh
+    if (!silent && !hasLoadedOnce.current) setLoading(true);
 
     const { data, error: qErr } = await supabase
       .from('listings')
@@ -204,21 +223,46 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         };
       }));
     }
+
+    hasLoadedOnce.current = true;
     setLoading(false);
   }, [session?.user?.id, onToast]);
 
   useEffect(() => { loadListings(); }, [loadListings]);
 
+  // ── Realtime: debounced silent refetch ──
   useEffect(() => {
     if (!session?.user?.id || !supabase) return;
+
     const ch = supabase
       .channel(`myshop:${session.user.id}`)
       .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'listings',
+        event: 'INSERT', schema: 'public', table: 'listings',
         filter: `seller_id=eq.${session.user.id}`
-      }, () => loadListings())
+      }, () => {
+        if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+        realtimeDebounceRef.current = setTimeout(() => loadListings(true), 400);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'listings',
+        filter: `seller_id=eq.${session.user.id}`
+      }, (payload) => {
+        // Ignore no-op updates like view counts (we handle those differently)
+        if (payload.old?.status === payload.new?.status &&
+            payload.old?.is_boosted === payload.new?.is_boosted &&
+            payload.old?.title === payload.new?.title &&
+            payload.old?.price === payload.new?.price) {
+          return;
+        }
+        if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+        realtimeDebounceRef.current = setTimeout(() => loadListings(true), 400);
+      })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    return () => {
+      supabase.removeChannel(ch);
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+    };
   }, [session?.user?.id, loadListings]);
 
   useEffect(() => {
@@ -228,7 +272,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
       setProfileLoading(true);
       const { data, error: pErr } = await supabase
         .from('profiles')
-        .select('display_name, business_name, avatar_url, is_verified, shop_plan_expires_at')
+        .select('display_name, business_name, avatar_url, is_verified, shop_plan_expires_at, created_at')
         .eq('id', session.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -249,6 +293,18 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
     session?.user?.user_metadata?.display_name ||
     'Your CampusFlip Shop';
 
+  const memberSince = shopProfile?.created_at
+    ? new Date(shopProfile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+    : null;
+
+  // Compute shop stats
+  const stats = (() => {
+    const live = listings.filter(l => l.status === 'active').length;
+    const sold = listings.filter(l => l.status === 'sold').length;
+    const totalViews = listings.reduce((sum, l) => sum + (l.views_count || 0), 0);
+    return { live, sold, totalViews };
+  })();
+
   function openModal(type, listing) {
     setActiveModal({ type, listing });
   }
@@ -257,9 +313,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
     setActiveModal(null);
   }
 
-  function openMoreMenu(listing) {
-    openModal('more', listing);
-  }
+  function openMoreMenu(listing) { openModal('more', listing); }
 
   function openBoostModal(listing) {
     setBoostPhone('');
@@ -280,13 +334,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
     openModal('flash', listing);
   }
 
-  function openSoldModal(listing) {
-    openModal('sold', listing);
-  }
-
-  function openDeleteModal(listing) {
-    openModal('delete', listing);
-  }
+  function openSoldModal(listing) { openModal('sold', listing); }
+  function openDeleteModal(listing) { openModal('delete', listing); }
 
   async function openEditModal(listing) {
     setEditTitle(listing.title || '');
@@ -372,7 +421,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
 
       setActiveModal(null);
       onToast?.('Listing updated.');
-      await loadListings();
+      await loadListings(true);
     } catch (err) {
       console.error('Edit save failed:', err);
       setEditError(err.message || 'Could not save changes.');
@@ -397,7 +446,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
       price: listing.kind === 'sale' ? listing.price : null
     });
 
-    window.setTimeout(() => { loadListings(); }, 400);
+    window.setTimeout(() => { loadListings(true); }, 400);
   }
 
   async function handleBoost(e) {
@@ -477,10 +526,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
       if (status === 'successful') {
         setBoostStatus('success');
         setBoosting(false);
-        setListings(prev => prev.map(l =>
-          l.id === activeModal?.listing?.id ? { ...l, is_boosted: true } : l
-        ));
-        loadListings();
+        loadListings(true);
         setTimeout(() => {
           setActiveModal(null);
           setBoostStatus('idle');
@@ -509,7 +555,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         setDealStatus('success');
         setDealSubmitting(false);
         onToast?.('Flash Deal activated.');
-        loadListings();
+        loadListings(true);
         setTimeout(() => {
           setActiveModal(null);
           setDealStatus('idle');
@@ -550,7 +596,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         maxWidth: 720, margin: '0 auto', color: '#101C3A'
       }}
     >
-      {/* ── Sticky header — stays visible while the page scrolls ───────── */}
+      {/* Header */}
       <div
         style={{
           position: 'sticky',
@@ -579,52 +625,105 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
             </p>
           </div>
         </div>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={loadListings} disabled={loading} style={iconButton} aria-label="Refresh">
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => loadListings()} disabled={loading} style={iconButton} aria-label="Refresh">
           <RefreshCw size={18} style={{ animation: loading ? 'cf-spin 1s linear infinite' : 'none' }} />
         </motion.button>
       </div>
 
-      {/* Shop card */}
+      {/* Shop card with stats */}
       <motion.section
         layout
         style={{
-          display: 'flex', alignItems: 'center', gap: 14, padding: 18,
-          marginBottom: 20, border: '1px solid #E5EAF2', borderRadius: 20,
+          padding: 20,
+          marginBottom: 20,
+          border: '1px solid #E5EAF2',
+          borderRadius: 20,
           background: 'linear-gradient(135deg, #ffffff 0%, #F5F8FF 100%)',
           boxShadow: '0 8px 24px rgba(16,28,58,.06)'
         }}
       >
-        <div style={{
-          width: 54, height: 54, flexShrink: 0, overflow: 'hidden',
-          display: 'grid', placeItems: 'center', borderRadius: 17,
-          background: '#E5EDFB', color: '#2563EB', fontSize: 20, fontWeight: 900
-        }}>
-          {shopProfile?.avatar_url ? (
-            <img src={shopProfile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : shopDisplayName.charAt(0).toUpperCase()}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7 }}>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 850, overflowWrap: 'anywhere' }}>
-              {profileLoading ? 'Loading your shop…' : shopDisplayName}
-            </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <div style={{
+            width: 54, height: 54, flexShrink: 0, overflow: 'hidden',
+            display: 'grid', placeItems: 'center', borderRadius: 17,
+            background: '#E5EDFB', color: '#2563EB', fontSize: 20, fontWeight: 900,
+            position: 'relative',
+          }}>
+            {shopProfile?.avatar_url ? (
+              <img src={shopProfile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : shopDisplayName.charAt(0).toUpperCase()}
             {shopPlanActive && (
               <motion.span
                 initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring}
                 style={{
-                  width: 19, height: 19, display: 'inline-grid', placeItems: 'center',
+                  position: 'absolute', bottom: -2, right: -2,
+                  width: 20, height: 20,
+                  display: 'inline-grid', placeItems: 'center',
                   borderRadius: '50%', background: '#2563EB', color: '#fff',
-                  fontSize: 12, fontWeight: 900,
-                  boxShadow: '0 2px 6px rgba(37,99,235,.25)'
+                  fontSize: 11, fontWeight: 900,
+                  border: '2px solid white',
+                  boxShadow: '0 2px 6px rgba(37,99,235,.35)'
                 }}
               >✓</motion.span>
             )}
           </div>
-          <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: 12 }}>
-            {profileLoading ? 'Loading status…' : shopPlanActive
-              ? `Verified · until ${shopPlanExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-              : 'CampusFlip seller'}
-          </p>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7 }}>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 850, overflowWrap: 'anywhere' }}>
+                {profileLoading ? 'Loading your shop…' : shopDisplayName}
+              </h2>
+            </div>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: 12 }}>
+              {profileLoading
+                ? 'Loading status…'
+                : shopPlanActive
+                  ? `Verified · until ${shopPlanExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                  : memberSince
+                    ? `Member since ${memberSince}`
+                    : 'CampusFlip seller'}
+            </p>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
+            paddingTop: 16,
+            borderTop: '1px solid #E5EAF2',
+          }}
+        >
+          {[
+            { label: 'Live', value: stats.live, icon: Package, accent: '#15803D' },
+            { label: 'Sold', value: stats.sold, icon: TrendingUp, accent: '#2563EB' },
+            { label: 'Views', value: stats.totalViews, icon: Eye, accent: '#F5A623' },
+          ].map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: 0.05 * i }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '10px 6px',
+                borderRadius: 12,
+                background: '#fff',
+                border: '1px solid #E5EAF2',
+              }}
+            >
+              <s.icon size={14} color={s.accent} style={{ marginBottom: 4 }} />
+              <div style={{ fontSize: 18, fontWeight: 850, color: '#101C3A', letterSpacing: -0.3 }}>
+                {s.value}
+              </div>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+                {s.label}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </motion.section>
 
@@ -663,10 +762,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         </div>
       ) : visible.length === 0 ? (
         <EmptyState
-          icon={Store}
-          title="Your shop is empty"
-          message="Post your first item and start earning from your campus."
-          actionLabel="Post an item"
+          variant="shop"
           onAction={onPostAnother ?? onBack}
         />
       ) : (
@@ -743,20 +839,28 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
                         {statusLabels[listing.status]}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 11, color: '#94A3B8' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 11, color: '#94A3B8', flexWrap: 'wrap' }}>
                       <span>{listing.categoryName}</span>
                       <span>·</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <MapPin size={10} /> {listing.spotName}
                       </span>
-                      {listing.photoCount > 1 && (
-                        <>
-                          <span>·</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <ImageIcon size={10} /> {listing.photoCount}
-                          </span>
-                        </>
-                      )}
+                    </div>
+                    {/* Performance row */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      marginTop: 8,
+                      fontSize: 10,
+                      color: '#94A3B8',
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Eye size={10} /> {listing.views_count || 0} views
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Clock3 size={10} /> {timeAgo(listing.created_at)}
+                      </span>
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                       {listing.kind === 'sale' ? (
@@ -918,12 +1022,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         </motion.div>
       )}
 
-      {/* ── More Actions Menu ─────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'more'}
-        onClose={closeModal}
-        maxWidth={380}
-      >
+      {/* ── More Actions Menu ── */}
+      <Modal open={activeModal?.type === 'more'} onClose={closeModal} maxWidth={380}>
         {activeModal?.type === 'more' && (
           <>
             <div style={{ marginBottom: 18 }}>
@@ -998,12 +1098,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         )}
       </Modal>
 
-      {/* ── Edit Modal ────────────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'edit'}
-        onClose={() => { if (!editSaving) closeModal(); }}
-        maxWidth={520}
-      >
+      {/* ── Edit Modal ── */}
+      <Modal open={activeModal?.type === 'edit'} onClose={() => { if (!editSaving) closeModal(); }} maxWidth={520}>
         {activeModal?.type === 'edit' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
@@ -1125,7 +1221,7 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
                   listingId={activeModal.listing.id}
                   onUploaded={() => {
                     onToast?.('Photo added.');
-                    loadListings();
+                    loadListings(true);
                   }}
                 />
               </div>
@@ -1171,12 +1267,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         )}
       </Modal>
 
-      {/* ── Delete Confirmation ────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'delete'}
-        onClose={() => { if (!deleting) closeModal(); }}
-        maxWidth={400}
-      >
+      {/* ── Delete Confirmation ── */}
+      <Modal open={activeModal?.type === 'delete'} onClose={() => { if (!deleting) closeModal(); }} maxWidth={400}>
         {activeModal?.type === 'delete' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{
@@ -1266,12 +1358,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         )}
       </Modal>
 
-      {/* ── Boost Modal ──────────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'boost'}
-        onClose={() => { if (!boosting && boostStatus === 'idle') closeModal(); }}
-        maxWidth={410}
-      >
+      {/* ── Boost Modal ── */}
+      <Modal open={activeModal?.type === 'boost'} onClose={() => { if (!boosting && boostStatus === 'idle') closeModal(); }} maxWidth={410}>
         {activeModal?.type === 'boost' && (
           <>
             <div style={{
@@ -1390,12 +1478,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         )}
       </Modal>
 
-      {/* ── Flash Deal Modal ──────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'flash'}
-        onClose={() => { if (!dealSubmitting && dealStatus !== 'waiting') closeModal(); }}
-        maxWidth={430}
-      >
+      {/* ── Flash Deal Modal ── */}
+      <Modal open={activeModal?.type === 'flash'} onClose={() => { if (!dealSubmitting && dealStatus !== 'waiting') closeModal(); }} maxWidth={430}>
         {activeModal?.type === 'flash' && (
           <>
             <div style={{
@@ -1522,12 +1606,8 @@ export default function MyShop({ session, onBack, onPostAnother, onToast }) {
         )}
       </Modal>
 
-      {/* ── Sold Confirmation ─────────────────────────────────────────── */}
-      <Modal
-        open={activeModal?.type === 'sold'}
-        onClose={() => { if (!updatingId) closeModal(); }}
-        maxWidth={400}
-      >
+      {/* ── Sold Confirmation ── */}
+      <Modal open={activeModal?.type === 'sold'} onClose={() => { if (!updatingId) closeModal(); }} maxWidth={400}>
         {activeModal?.type === 'sold' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{
