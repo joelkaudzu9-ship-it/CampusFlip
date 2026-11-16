@@ -53,7 +53,6 @@ const categoryMatches = {
     'beauty & personal care', 'sports & fitness', 'other']
 };
 
-// Hero tiles map to real category names used by the filter
 const HERO_TILES = [
   { key: 'Books', label: 'Books', emoji: '📚', filterCat: 'Books' },
   { key: 'Electronics', label: 'Tech', emoji: '💻', filterCat: 'Electronics' },
@@ -102,7 +101,6 @@ const SORT_LABELS = {
   price_desc: 'Price ↓'
 };
 
-/* ── Product card ── */
 function ProductCard({ item, isSaved, onSave, onOpen, flashDeal }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -347,6 +345,7 @@ export default function App() {
   const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const refreshDebounceRef = useRef(null);
+  const lastHandledExpiryRef = useRef(0);
 
   const accountBack = useBackButton(showAccountPage, () => { setShowAccountPage(false); setNav('Home'); });
   const settingsBack = useBackButton(showSettings, () => { setShowSettings(false); });
@@ -616,32 +615,60 @@ export default function App() {
     return () => { cancelled = true; };
   }, [refreshListings]);
 
+  // FIX 2 — Flash deal expiry: only fire once per expired deal, not every second
   useEffect(() => {
     if (!flashDeals.length) return;
-    const nextExpiry = Math.min(...flashDeals.map(item => new Date(item.endsAt).getTime()));
+
+    const futureExpiries = flashDeals
+      .map(item => new Date(item.endsAt).getTime())
+      .filter(t => t > dealNow);
+
+    if (futureExpiries.length === 0) {
+      const oldestExpiry = Math.min(...flashDeals.map(item => new Date(item.endsAt).getTime()));
+      if (lastHandledExpiryRef.current !== oldestExpiry) {
+        lastHandledExpiryRef.current = oldestExpiry;
+        setRefreshListings(v => v + 1);
+      }
+      return;
+    }
+
+    const nextExpiry = Math.min(...futureExpiries);
     const delay = nextExpiry - dealNow;
-    if (delay <= 0) { setRefreshListings(v => v + 1); return; }
     const timer = setTimeout(() => setRefreshListings(v => v + 1), delay + 1000);
     return () => clearTimeout(timer);
   }, [flashDeals, dealNow]);
 
+  // FIX 1 — scheduleRefresh bails while a full-page view is open
   const scheduleRefresh = useCallback(() => {
+    if (showMyShop || showSavedPage || showAccountPage || showAdmin ||
+        showSearchPage || showNotificationPrefs || showPrivacy) {
+      return;
+    }
     if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     refreshDebounceRef.current = setTimeout(() => {
       setRefreshListings(v => v + 1);
       refreshDebounceRef.current = null;
     }, 400);
-  }, []);
+  }, [
+    showMyShop, showSavedPage, showAccountPage, showAdmin,
+    showSearchPage, showNotificationPrefs, showPrivacy
+  ]);
+
+  // FIX 3 — Stable ref so the realtime channel doesn't re-subscribe
+  const scheduleRefreshRef = useRef(null);
+  useEffect(() => {
+    scheduleRefreshRef.current = scheduleRefresh;
+  }, [scheduleRefresh]);
 
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
       .channel('public:marketplace-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => scheduleRefresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_deals' }, () => scheduleRefresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => scheduleRefreshRef.current?.())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flash_deals' }, () => scheduleRefreshRef.current?.())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        if (payload.new?.is_verified !== payload.old?.is_verified) scheduleRefresh();
+        if (payload.new?.is_verified !== payload.old?.is_verified) scheduleRefreshRef.current?.();
       })
       .subscribe();
 
@@ -649,7 +676,7 @@ export default function App() {
       supabase.removeChannel(channel);
       if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
-  }, [scheduleRefresh]);
+  }, []);
 
   function ping(message, type = 'success') { setToast({ id: Date.now(), message, type }); }
   function dismissToast() { setToast(null); }
@@ -750,7 +777,6 @@ export default function App() {
     return filtered;
   }, [items, cat, verifiedOnly, sort]);
 
-  // Hero tile counts — computed from real items
   const heroCounts = useMemo(() => {
     const counts = { Books: 0, Electronics: 0, Clothes: 0, Food: 0 };
     for (const item of items) {
@@ -765,7 +791,6 @@ export default function App() {
     return counts;
   }, [items]);
 
-  // Live seller count — unique sellers in current item set
   const sellerCount = useMemo(() => {
     const seen = new Set();
     for (const item of items) {
@@ -908,9 +933,6 @@ export default function App() {
             />
           </AnimatedModal>
 
-          {/* ═══════════════════════════════════════════════════
-              HERO — value prop + category tiles + live stats
-              ═══════════════════════════════════════════════════ */}
           <motion.section
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -925,7 +947,6 @@ export default function App() {
               overflow: 'hidden',
             }}
           >
-            {/* Ambient glow */}
             <div
               style={{
                 position: 'absolute',
@@ -984,7 +1005,6 @@ export default function App() {
                 Textbooks, electronics, lab coats — from students a few years ahead of you.
               </p>
 
-              {/* Category tiles */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
@@ -1000,7 +1020,6 @@ export default function App() {
                       whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setCat(tile.filterCat);
-                        // Smooth scroll down to the grid
                         document.querySelector('.subhead')?.scrollIntoView({
                           behavior: 'smooth',
                           block: 'start',
@@ -1038,7 +1057,6 @@ export default function App() {
                 })}
               </div>
 
-              {/* Live stats */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1600,108 +1618,94 @@ export default function App() {
             />
           </AnimatedModal>
 
-          <AnimatePresence>
-            {showAccountPage && Boolean(session) && (
-              <PageTransition key="account-page" onBack={accountBack.close}>
-                <AccountPage
-                  session={session}
-                  onBack={accountBack.close}
-                  onOpenSettings={() => setShowSettings(true)}
-                  onOpenNotifications={() => setShowNotificationPrefs(true)}
-                  onOpenPrivacy={() => setShowPrivacy(true)}
-                  onSignOut={handleSignOut}
-                  onOpenAdmin={() => setShowAdmin(true)}
-                  isAdmin={isAdmin}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showAccountPage && Boolean(session) && (
+            <PageTransition key="account-page" onBack={accountBack.close}>
+              <AccountPage
+                session={session}
+                onBack={accountBack.close}
+                onOpenSettings={() => setShowSettings(true)}
+                onOpenNotifications={() => setShowNotificationPrefs(true)}
+                onOpenPrivacy={() => setShowPrivacy(true)}
+                onSignOut={handleSignOut}
+                onOpenAdmin={() => setShowAdmin(true)}
+                isAdmin={isAdmin}
+              />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showNotificationPrefs && Boolean(session) && (
-              <PageTransition key="notif-prefs" onBack={notifPrefsBack.close}>
-                <NotificationPreferences
-                  session={session}
-                  onBack={notifPrefsBack.close}
-                  onToast={ping}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showNotificationPrefs && Boolean(session) && (
+            <PageTransition key="notif-prefs" onBack={notifPrefsBack.close}>
+              <NotificationPreferences
+                session={session}
+                onBack={notifPrefsBack.close}
+                onToast={ping}
+              />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showPrivacy && Boolean(session) && (
-              <PageTransition key="privacy" onBack={privacyBack.close}>
-                <PrivacySecurity
-                  session={session}
-                  onBack={privacyBack.close}
-                  onSignOut={() => {
-                    setShowAccountPage(false);
-                    setNav('Home');
-                    privacyBack.close();
-                  }}
-                  onToast={ping}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showPrivacy && Boolean(session) && (
+            <PageTransition key="privacy" onBack={privacyBack.close}>
+              <PrivacySecurity
+                session={session}
+                onBack={privacyBack.close}
+                onSignOut={() => {
+                  setShowAccountPage(false);
+                  setNav('Home');
+                  privacyBack.close();
+                }}
+                onToast={ping}
+              />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showSavedPage && (
-              <PageTransition key="saved-page" onBack={savedBack.close}>
-                <SavedItemsPage
-                  session={session}
-                  onBack={savedBack.close}
-                  onOpenListing={item => {
-                    savedBack.close();
-                    setTimeout(() => setSelectedListing(item), 0);
-                  }}
-                  onToast={ping}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showSavedPage && (
+            <PageTransition key="saved-page" onBack={savedBack.close}>
+              <SavedItemsPage
+                session={session}
+                onBack={savedBack.close}
+                onOpenListing={item => {
+                  savedBack.close();
+                  setTimeout(() => setSelectedListing(item), 0);
+                }}
+                onToast={ping}
+              />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showMyShop && (
-              <PageTransition key="my-shop" onBack={shopBack.close}>
-                <MyShop
-                  session={session}
-                  onBack={shopBack.close}
-                  onPostAnother={() => {
-                    shopBack.close();
-                    setTimeout(() => setShowPost(true), 0);
-                  }}
-                  onToast={ping}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showMyShop && (
+            <PageTransition key="my-shop" onBack={shopBack.close}>
+              <MyShop
+                session={session}
+                onBack={shopBack.close}
+                onPostAnother={() => {
+                  shopBack.close();
+                  setTimeout(() => setShowPost(true), 0);
+                }}
+                onToast={ping}
+              />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showAdmin && (
-              <PageTransition key="admin-dashboard" onBack={adminBack.close}>
-                <AdminDashboard session={session} onBack={adminBack.close} />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showAdmin && (
+            <PageTransition key="admin-dashboard" onBack={adminBack.close}>
+              <AdminDashboard session={session} onBack={adminBack.close} />
+            </PageTransition>
+          )}
 
-          <AnimatePresence>
-            {showSearchPage && (
-              <PageTransition key="search-page" onBack={searchBack.close}>
-                <SearchPage
-                  items={items}
-                  saved={saved}
-                  onSave={save}
-                  onOpenListing={(item) => {
-                    searchBack.close();
-                    setTimeout(() => setSelectedListing(item), 0);
-                  }}
-                  onBack={searchBack.close}
-                />
-              </PageTransition>
-            )}
-          </AnimatePresence>
+          {showSearchPage && (
+            <PageTransition key="search-page" onBack={searchBack.close}>
+              <SearchPage
+                items={items}
+                saved={saved}
+                onSave={save}
+                onOpenListing={(item) => {
+                  searchBack.close();
+                  setTimeout(() => setSelectedListing(item), 0);
+                }}
+                onBack={searchBack.close}
+              />
+            </PageTransition>
+          )}
 
           <ListingDetails
             listing={selectedListing}
